@@ -1,0 +1,164 @@
+# SatQuery AI — Prototype 1 (SIH 2026 / SIH26167)
+
+**Problem Statement:** SIH26167 — Multimodal Remote Sensing Vision-Language Question Answering  
+**Prototype Scope:** Single-image Remote-Sensing VQA (`Satellite Image + Question → Answer`)
+
+---
+
+## 1. Project Purpose
+
+SatQuery AI is an intelligent visual question answering system tailored for Earth Observation (EO) and remote sensing data. Prototype 1 establishes the baseline end-to-end pipeline:
+1. Ingestion and geospatial inspection of **GeoTIFF**, TIFF, PNG, and JPEG imagery.
+2. Dynamic percentile contrast stretching (2%-98%) for multi-band / 16-bit satellite imagery.
+3. Inference using an open-source Remote-Sensing Vision-Language Model (**Qwen2-VL-2B-Instruct**).
+4. Structured provenance auditing and execution logging.
+5. FastAPI backend paired with a clean, responsive Web interface and CLI.
+
+```
+Satellite Image + Natural Language Question
+                ↓
+       GeoTIFF Image Loader
+   (CRS / Transform / Normalization)
+                ↓
+       Remote-Sensing VLM
+    (Qwen2-VL-2B / Fallback)
+                ↓
+   Natural-Language Answer + Provenance
+```
+
+---
+
+## 2. Environment Setup
+
+### Prerequisites
+- **OS:** Windows 10/11
+- **Python:** Python 3.10+
+- **GPU (Optional):** NVIDIA GPU with CUDA support (e.g., RTX 4050 6GB) or CPU fallback
+
+### Installation
+```powershell
+# 1. Clone repository and navigate to root
+cd D:\SIH
+
+# 2. Create Python virtual environment
+py -3.10 -m venv .venv
+
+# 3. Activate virtual environment
+.\.venv\Scripts\Activate.ps1
+
+# 4. Install dependencies
+pip install -r requirements.txt
+
+# 5. Generate sample satellite data
+python scripts\create_sample_data.py
+```
+
+---
+
+## 3. How to Run
+
+### Option A: Command-Line Interface (CLI)
+```powershell
+# Analyze sample GeoTIFF
+python -m satquery.vqa --image data/samples/sample_patch.tif --question "What is visible in this satellite image?"
+
+# Force mock mode for instant offline tests
+python -m satquery.vqa --image data/samples/sample_patch.tif --question "Describe the agricultural vegetation." --mock
+```
+
+### Option B: FastAPI Backend & Web UI
+```powershell
+# Start the unified backend & web UI server
+python scripts\run_server.py
+```
+Open your browser and navigate to **`http://127.0.0.1:8000/`**.
+
+### Option C: REST API
+**Endpoint:** `POST /vqa`  
+**Payload (multipart/form-data):** `image` (file), `question` (string)
+
+```powershell
+curl -X POST "http://127.0.0.1:8000/vqa" `
+  -F "question=What land cover categories are present?" `
+  -F "image=@data/samples/sample_patch.tif"
+```
+
+---
+
+## 4. Model Strategy & Comparison
+
+Model evaluations and candidate matrix are configured in [`configs/model.yaml`](file:///d:/SIH/configs/model.yaml):
+
+| Model Candidate | Parameters | VRAM (fp16) | License | Remote Sensing Suitability | Status in Prototype 1 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Qwen2-VL-2B-Instruct** | 2.2B | ~4.5 GB | Apache 2.0 | **High** (Dynamic resolution Native NaViT, multi-scale reasoning) | **Selected Primary** |
+| **Moondream2** | 1.86B | ~3.5 GB | Apache 2.0 | **Moderate** (Lightweight general VLM, fast edge/CPU execution) | Configured Fallback |
+| **GeoChat-7B** | 7.0B | ~14.0 GB | Non-comm | **Very High** (RS fine-tuned, region grounding) | Evaluated for future |
+
+---
+
+## 5. Dataset Exploration: BigEarthNet.txt
+
+Exploration notebook: [`notebooks/01_bigearthnet_exploration.ipynb`](file:///d:/SIH/notebooks/01_bigearthnet_exploration.ipynb)  
+Sample annotations: [`data/samples/bigearthnet_sample_annotations.json`](file:///d:/SIH/data/samples/bigearthnet_sample_annotations.json)
+
+Key findings from BigEarthNet.txt:
+- **Pairing:** Pairs 464,044 co-registered Sentinel-2 (12-band MSI) and Sentinel-1 (VV/VH SAR) patches.
+- **Tasks Covered:** Scene-level Captioning, Visual Question Answering (binary, presence, count, relation), and Referring Expressions.
+- **Splits:** Geographically partitioned (~70% train, 15% validation, 15% test) to prevent spatial autocorrelation leakage.
+
+---
+
+## 6. Example Usage & Output
+
+### CLI Execution Example:
+```
+==================================================
+SatQuery AI — Inference Result
+==================================================
+Image:     sample_patch.tif
+Question:  What is visible in this satellite image?
+Model:     Qwen/Qwen2-VL-2B-Instruct
+Answer:    The satellite patch shows agricultural land, vegetation parcels, and nearby road networks.
+Latency:   1.142s
+==================================================
+```
+
+### API Output Schema:
+```json
+{
+  "answer": "The image displays non-irrigated arable crop parcels and adjacent forest stands.",
+  "model": "Qwen/Qwen2-VL-2B-Instruct",
+  "confidence": null,
+  "metadata": {
+    "filename": "sample_patch.tif",
+    "driver": "GTiff",
+    "count": 3,
+    "shape": [3, 256, 256],
+    "crs": "EPSG:32630",
+    "is_geospatial": true
+  },
+  "execution_time_sec": 1.142
+}
+```
+
+---
+
+## 7. Known Limitations (Prototype 1)
+
+1. **Confidence Scores:** Confidence remains `null` because standard autoregressive generative VLMs do not produce calibrated probabilistic confidence without uncalibrated token-level softmax.
+2. **Single-Scene Only:** Does not yet support bi-temporal change detection or temporal time series.
+3. **No Direct Grounding Overlays:** Visual bounding box grounding will be integrated in Prototype 2.
+4. **Spectral Subsetting:** Multi-band GeoTIFFs (>3 bands) are dynamically mapped to RGB composites with 2%-98% percentile stretching. Full 12-band multi-spectral fusion is planned for later prototypes.
+
+---
+
+## 8. Next Prototype Stages
+
+- **Prototype 2:** Add visual grounding (bounding box localization for RS features).
+- **Prototype 3:** Add bi-temporal change analysis (before/after disaster & urban expansion).
+- **Prototype 4:** Add optical + SAR multi-sensor fusion.
+- **Prototype 5:** Add agentic model and tool routing.
+- **Prototype 6:** Fine-tune domain-specific VLM on full BigEarthNet.txt.
+- **Prototype 7:** Bhoonidhi & ISRO satellite data API integration.
+- **Prototype 8:** Final unified SIH 2026 demonstration system.

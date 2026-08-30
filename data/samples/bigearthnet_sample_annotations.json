@@ -1,0 +1,129 @@
+[
+  {
+    "patch_id": "S2A_MSIL2A_20170717T113321_N0205_R080_T30UVF_43_61",
+    "split": "train",
+    "s1_patch": "S1A_IW_GRDH_1SDV_20170717T175510_017514_01D477_T30UVF_43_61",
+    "s2_patch": "S2A_MSIL2A_20170717T113321_N0205_R080_T30UVF_43_61",
+    "acquisition_date": "2017-07-17",
+    "country": "France",
+    "projection": "EPSG:32630",
+    "coordinates": {
+      "latitude": 47.452,
+      "longitude": -0.551
+    },
+    "labels": [
+      "Non-irrigated arable land",
+      "Discontinuous urban fabric",
+      "Broad-leaved forest"
+    ],
+    "captions": [
+      "A satellite patch comprising extensive non-irrigated arable crop parcels bordered by discontinuous urban residential fabric and patches of broad-leaved forest."
+    ],
+    "vqa": [
+      {
+        "question": "What is visible in this satellite image?",
+        "answer": "The image displays non-irrigated agricultural cropland, discontinuous residential settlements, and broad-leaved forest stands.",
+        "task_type": "scene_description"
+      },
+      {
+        "question": "Is there agricultural land present in this patch?",
+        "answer": "Yes, non-irrigated arable land is prominently present.",
+        "task_type": "binary_presence"
+      },
+      {
+        "question": "Are there any open water bodies or lakes visible?",
+        "answer": "No open water bodies are present in this patch.",
+        "task_type": "binary_presence"
+      },
+      {
+        "question": "What forest type is observed in the scene?",
+        "answer": "Broad-leaved forest.",
+        "task_type": "attribute_identification"
+      }
+    ],
+    "referring_expressions": [
+      {
+        "expression": "The residential cluster located along the north-western perimeter of the agricultural field.",
+        "category": "Discontinuous urban fabric"
+      }
+    ]
+  },
+  {
+    "patch_id": "S2B_MSIL2A_20180529T094029_N0208_R036_T33UUP_12_74",
+    "split": "validation",
+    "s1_patch": "S1B_IW_GRDH_1SDV_20180529T164512_011142_0146AE_T33UUP_12_74",
+    "s2_patch": "S2B_MSIL2A_20180529T094029_N0208_R036_T33UUP_12_74",
+    "acquisition_date": "2018-05-29",
+    "country": "Germany",
+    "projection": "EPSG:32633",
+    "coordinates": {
+      "latitude": 51.341,
+      "longitude": 12.373
+    },
+    "labels": [
+      "Water bodies",
+      "Coniferous forest",
+      "Pastures"
+    ],
+    "captions": [
+      "An aerial remote-sensing patch showing an inland water body surrounded by dense coniferous woodland and adjacent pasture lands."
+    ],
+    "vqa": [
+      {
+        "question": "Is there a water body visible in this satellite scene?",
+        "answer": "Yes, inland water bodies are visible in the central-eastern quadrant.",
+        "task_type": "binary_presence"
+      },
+      {
+        "question": "What type of vegetation covers the area surrounding the water body?",
+        "answer": "Coniferous forest and open pastures.",
+        "task_type": "spatial_relation"
+      }
+    ],
+    "referring_expressions": [
+      {
+        "expression": "The water reservoir situated adjacent to the evergreen woodland.",
+        "category": "Water bodies"
+      }
+    ]
+  },
+  {
+    "patch_id": "S2A_MSIL2A_20170826T100021_N0205_R122_T32TNS_84_21",
+    "split": "test",
+    "s1_patch": "S1A_IW_GRDH_1SDV_20170826T172033_018096_01E6BD_T32TNS_84_21",
+    "s2_patch": "S2A_MSIL2A_20170826T100021_N0205_R122_T32TNS_84_21",
+    "acquisition_date": "2017-08-26",
+    "country": "Italy",
+    "projection": "EPSG:32632",
+    "coordinates": {
+      "latitude": 44.802,
+      "longitude": 10.328
+    },
+    "labels": [
+      "Industrial or commercial units",
+      "Continuous urban fabric",
+      "Road and rail networks"
+    ],
+    "captions": [
+      "Dense urban core characterized by continuous built fabric, commercial logistic warehouses, and arterial transport networks."
+    ],
+    "vqa": [
+      {
+        "question": "What kind of urban environment is depicted?",
+        "answer": "High-density urban fabric integrated with commercial industrial complexes and transportation networks.",
+        "task_type": "scene_description"
+      },
+      {
+        "question": "Are transport networks such as roads or rail visible?",
+        "answer": "Yes, road and rail infrastructure are prominently visible.",
+        "task_type": "binary_presence"
+      }
+    ],
+    "referring_expressions": [
+      {
+        "expression": "The industrial warehouse complex adjacent to the major highway interchange.",
+        "category": "Industrial or commercial units"
+      }
+    ]
+  }
+]
