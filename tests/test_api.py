@@ -67,3 +67,19 @@ def test_api_executions_endpoint(client):
     response = client.get("/executions")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_api_preview_endpoint(client, sample_geotiff_image):
+    with open(sample_geotiff_image, "rb") as f:
+        response = client.post(
+            "/preview",
+            files={"image": ("test_preview.tif", f, "image/tiff")},
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert "preview_url" in data
+    assert data["preview_url"].startswith("data:image/png;base64,")
+    assert "metadata" in data
+    assert data["metadata"]["original_filename"] == "test_preview.tif"
+

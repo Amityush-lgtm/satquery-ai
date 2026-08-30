@@ -1,3 +1,5 @@
+import base64
+import io
 import json
 import os
 import shutil
@@ -23,6 +25,13 @@ from satquery.utils.logging import PROVENANCE_FILE, get_logger, record_execution
 from satquery.vqa.model import BaseVQAModel, get_vqa_model
 
 logger = get_logger("satquery.api")
+
+
+def pil_to_base64_png(img) -> str:
+    """Encodes a PIL image to a Base64 PNG data URL."""
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
 @asynccontextmanager
@@ -74,6 +83,49 @@ async def health_check() -> Dict[str, Any]:
         "version": "0.1.0",
         "active_model": model_id,
     }
+
+
+@app.post("/preview")
+async def preview_image_endpoint(
+    image: UploadFile = File(..., description="Satellite image file to convert for browser preview"),
+) -> Dict[str, Any]:
+    """
+    Accepts any supported satellite format (GeoTIFF, TIFF, PNG, JPG),
+    normalizes it via the geospatial engine (percentile stretch & multi-band reduction),
+    and returns a base64 encoded PNG for instant browser rendering alongside geospatial metadata.
+    """
+    suffix = Path(image.filename).suffix if image.filename else ".tif"
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=TEMP_UPLOAD_DIR)
+    temp_path = Path(temp_file.name)
+
+    try:
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        try:
+            geo_img = load_image(temp_path)
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        except UnsupportedFormatError as e:
+            raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(e))
+        except (CorruptedImageError, ImageValidationError) as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+        geo_img.metadata["original_filename"] = image.filename
+        preview_data_url = pil_to_base64_png(geo_img.pil_image)
+
+        return {
+            "status": "success",
+            "filename": image.filename,
+            "preview_url": preview_data_url,
+            "metadata": geo_img.metadata,
+        }
+    finally:
+        if temp_path.exists():
+            try:
+                temp_path.unlink()
+            except Exception:
+                pass
 
 
 @app.post("/vqa", response_model=VQAResponse)

@@ -81,15 +81,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Handle File Selection & Preview
-    function handleFile(file) {
+    async function handleFile(file) {
         clearAlert();
         if (!file) return;
 
         fileName.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
         fileInfo.classList.remove('hidden');
 
-        // Preview standard images immediately
-        if (file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.tif') && !file.name.toLowerCase().endsWith('.tiff')) {
+        const isTiff = file.name.toLowerCase().endsWith('.tif') || file.name.toLowerCase().endsWith('.tiff');
+
+        // If standard image, show client-side preview immediately while server processes
+        if (!isTiff && file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 imagePreview.src = e.target.result;
@@ -98,10 +100,41 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             reader.readAsDataURL(file);
         } else {
-            // For GeoTIFF, show placeholder indicating server-side normalization
+            // Show loading placeholder while GeoTIFF is processed into preview
             imagePreview.classList.add('hidden');
             previewPlaceholder.classList.remove('hidden');
-            previewPlaceholder.querySelector('span').textContent = `GeoTIFF: ${file.name} (Ready for VLM)`;
+            const spanText = previewPlaceholder.querySelector('span');
+            if (spanText) spanText.textContent = `Processing GeoTIFF preview for ${file.name}...`;
+        }
+
+        // Call backend /preview endpoint for server-side normalization and metadata extraction
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const res = await fetch('/preview', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.preview_url) {
+                    imagePreview.src = data.preview_url;
+                    imagePreview.classList.remove('hidden');
+                    previewPlaceholder.classList.add('hidden');
+                }
+                if (data.metadata) {
+                    metaCrs.textContent = data.metadata.crs || 'Local / None';
+                    metaShape.textContent = data.metadata.shape ? `[${data.metadata.shape.join(', ')}]` : '-';
+                    metaBands.textContent = data.metadata.bands || data.metadata.count || '-';
+                    metaDriver.textContent = data.metadata.driver || 'Raster';
+                }
+            } else {
+                console.warn('Preview generation returned non-OK status');
+            }
+        } catch (err) {
+            console.error('Failed to generate GeoTIFF preview', err);
         }
     }
 

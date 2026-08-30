@@ -14,7 +14,8 @@ def main():
     host = os.getenv("SATQUERY_HOST", "127.0.0.1")
     port = int(os.getenv("SATQUERY_PORT", 8000))
     print(f"Starting SatQuery AI Server on http://{host}:{port} ...")
-    uvicorn.run("satquery.api.main:app", host=host, port=port, reload=False)
+    uvicorn.run("satquery.api.main:app", host=host, port=port, reload=True)
+
 
 if __name__ == "__main__":
     main()

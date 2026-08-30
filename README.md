@@ -1,164 +1,193 @@
-# SatQuery AI — Prototype 1 (SIH 2026 / SIH26167)
-
-**Problem Statement:** SIH26167 — Multimodal Remote Sensing Vision-Language Question Answering  
-**Prototype Scope:** Single-image Remote-Sensing VQA (`Satellite Image + Question → Answer`)
-
----
-
-## 1. Project Purpose
-
-SatQuery AI is an intelligent visual question answering system tailored for Earth Observation (EO) and remote sensing data. Prototype 1 establishes the baseline end-to-end pipeline:
-1. Ingestion and geospatial inspection of **GeoTIFF**, TIFF, PNG, and JPEG imagery.
-2. Dynamic percentile contrast stretching (2%-98%) for multi-band / 16-bit satellite imagery.
-3. Inference using an open-source Remote-Sensing Vision-Language Model (**Qwen2-VL-2B-Instruct**).
-4. Structured provenance auditing and execution logging.
-5. FastAPI backend paired with a clean, responsive Web interface and CLI.
-
-```
-Satellite Image + Natural Language Question
-                ↓
-       GeoTIFF Image Loader
-   (CRS / Transform / Normalization)
-                ↓
-       Remote-Sensing VLM
-    (Qwen2-VL-2B / Fallback)
-                ↓
-   Natural-Language Answer + Provenance
-```
+# SatQuery AI — Prototype 1
+### Smart India Hackathon 2026 · Problem Statement ID: SIH26167
+**Team:** Saverra · **Institution:** IIT Madras BS Degree Programme  
+**Theme:** Space Technology · **Category:** Software
 
 ---
 
-## 2. Environment Setup
+## 🛰️ 1. Project Overview
 
-### Prerequisites
-- **OS:** Windows 10/11
-- **Python:** Python 3.10+
-- **GPU (Optional):** NVIDIA GPU with CUDA support (e.g., RTX 4050 6GB) or CPU fallback
+**SatQuery AI** is an intelligent, agentic vision-language assistant for Earth Observation (EO) and remote sensing data. 
 
-### Installation
+**Prototype 1** establishes the core baseline pipeline:
+$$\text{Satellite Image (GeoTIFF, TIFF, PNG, JPEG)} + \text{Natural Language Query} \xrightarrow{\text{Remote-Sensing VLM}} \text{Evidence-Grounded Answer}$$
+
+### Key Capabilities in Prototype 1:
+1. **Geospatial Raster Ingestion:** Reads **GeoTIFF**, TIFF, PNG, and JPEG files with full extraction of Coordinate Reference System (`CRS`), Affine geotransform, bounding box, and radiometric bands.
+2. **Dynamic 2%–98% Percentile Normalization:** Automatically converts 16-bit and multi-band satellite rasters into clean RGB composites suitable for Vision-Language Models.
+3. **Live Browser GeoTIFF Preview:** Server-side `/preview` endpoint renders GeoTIFFs directly into the web browser while populating geospatial metadata drawers.
+4. **VLM Integration (`Qwen2-VL-2B-Instruct`):** Integrated open-source remote-sensing vision-language model with dynamic resolution handling and fallback Mock VLM mode.
+5. **Interactive Web UI & REST API:** Modern responsive interface with instant previews, sample presets, latency monitoring, and auditable execution logging (`outputs/executions.jsonl`).
+6. **Automated Test Suite:** 16 unit and integration tests passing 100%.
+
+---
+
+## 💻 2. Team Setup Guide (Get It Running on Your System)
+
+Follow these steps to set up and run SatQuery AI on your machine.
+
+### Prerequisites:
+- **Operating System:** Windows 10/11, macOS, or Ubuntu/Linux
+- **Python:** Python 3.10 or 3.11 installed
+- **Git:** Git CLI installed
+- **Hardware:** Works on both CPU and GPU (NVIDIA GPU with CUDA recommended for real VLM weights; CPU/Mock mode supported for edge/lightweight testing).
+
+---
+
+### Step 1: Clone Repository
 ```powershell
-# 1. Clone repository and navigate to root
-cd D:\SIH
+git clone https://github.com/Amityush-lgtm/satquery-ai.git
+cd satquery-ai
+```
 
-# 2. Create Python virtual environment
-py -3.10 -m venv .venv
+---
 
-# 3. Activate virtual environment
+### Step 2: Create and Activate Virtual Environment
+
+**On Windows (PowerShell):**
+```powershell
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+```
+*(If you see an execution policy error on PowerShell, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` first).*
 
-# 4. Install dependencies
+**On macOS / Linux (Bash/Zsh):**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+---
+
+### Step 3: Install Dependencies
+```powershell
+pip install --upgrade pip
 pip install -r requirements.txt
-
-# 5. Generate sample satellite data
-python scripts\create_sample_data.py
+pip install -e . --no-deps
 ```
 
 ---
 
-## 3. How to Run
-
-### Option A: Command-Line Interface (CLI)
+### Step 4: Generate Sample GeoTIFF & Image Datasets
+Run the script to generate sample multi-band GeoTIFFs and test imagery in `data/samples/`:
 ```powershell
-# Analyze sample GeoTIFF
-python -m satquery.vqa --image data/samples/sample_patch.tif --question "What is visible in this satellite image?"
-
-# Force mock mode for instant offline tests
-python -m satquery.vqa --image data/samples/sample_patch.tif --question "Describe the agricultural vegetation." --mock
+python scripts/create_sample_data.py
 ```
+This generates:
+- `data/samples/sample_patch.tif` (Multi-band GeoTIFF)
+- `data/samples/sample_agricultural.tif` (GeoTIFF)
+- `data/samples/sample_urban.png` (High-resolution optical PNG)
 
-### Option B: FastAPI Backend & Web UI
+---
+
+## 🚀 3. How to Run the Application
+
+### Option A: Launch Interactive Web Application (Recommended)
+
+#### Mode 1: Fast Testing / Mock Mode (Starts Instantly, No GPU or Download Needed)
+If you do not have a dedicated GPU or want to test the Web UI without waiting for 4.5 GB model weights to download:
 ```powershell
-# Start the unified backend & web UI server
-python scripts\run_server.py
-```
-Open your browser and navigate to **`http://127.0.0.1:8000/`**.
+# Windows PowerShell
+$env:SATQUERY_MOCK_MODEL="1"
+python scripts/run_server.py
 
-### Option C: REST API
-**Endpoint:** `POST /vqa`  
-**Payload (multipart/form-data):** `image` (file), `question` (string)
+# macOS / Linux Bash
+SATQUERY_MOCK_MODEL=1 python scripts/run_server.py
+```
+
+#### Mode 2: Production VLM Mode (Downloads and Uses `Qwen2-VL-2B-Instruct`)
+```powershell
+python scripts/run_server.py
+```
+*(Note: On first run, it will automatically download ~4.5 GB weights from Hugging Face).*
+
+Once started, open your browser and navigate to:
+👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
+
+---
+
+### Option B: Command-Line Interface (CLI)
+
+You can run single queries directly from the terminal:
 
 ```powershell
-curl -X POST "http://127.0.0.1:8000/vqa" `
-  -F "question=What land cover categories are present?" `
-  -F "image=@data/samples/sample_patch.tif"
+# Run with fast mock model:
+python -m satquery.vqa --image data/samples/sample_patch.tif --question "What is visible in this satellite image?" --mock
+
+# Run with full Qwen2-VL model:
+python -m satquery.vqa --image data/samples/sample_patch.tif --question "What land cover types are present?"
 ```
 
 ---
 
-## 4. Model Strategy & Comparison
+### Option C: Run Automated Tests
 
-Model evaluations and candidate matrix are configured in [`configs/model.yaml`](file:///d:/SIH/configs/model.yaml):
-
-| Model Candidate | Parameters | VRAM (fp16) | License | Remote Sensing Suitability | Status in Prototype 1 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Qwen2-VL-2B-Instruct** | 2.2B | ~4.5 GB | Apache 2.0 | **High** (Dynamic resolution Native NaViT, multi-scale reasoning) | **Selected Primary** |
-| **Moondream2** | 1.86B | ~3.5 GB | Apache 2.0 | **Moderate** (Lightweight general VLM, fast edge/CPU execution) | Configured Fallback |
-| **GeoChat-7B** | 7.0B | ~14.0 GB | Non-comm | **Very High** (RS fine-tuned, region grounding) | Evaluated for future |
+To verify that all components (image loader, VQA model, API endpoints, GeoTIFF preview) are working:
+```powershell
+pytest -v
+```
+All 16 tests should pass with green checks.
 
 ---
 
-## 5. Dataset Exploration: BigEarthNet.txt
+## 📂 4. Project Structure
 
-Exploration notebook: [`notebooks/01_bigearthnet_exploration.ipynb`](file:///d:/SIH/notebooks/01_bigearthnet_exploration.ipynb)  
-Sample annotations: [`data/samples/bigearthnet_sample_annotations.json`](file:///d:/SIH/data/samples/bigearthnet_sample_annotations.json)
-
-Key findings from BigEarthNet.txt:
-- **Pairing:** Pairs 464,044 co-registered Sentinel-2 (12-band MSI) and Sentinel-1 (VV/VH SAR) patches.
-- **Tasks Covered:** Scene-level Captioning, Visual Question Answering (binary, presence, count, relation), and Referring Expressions.
-- **Splits:** Geographically partitioned (~70% train, 15% validation, 15% test) to prevent spatial autocorrelation leakage.
-
----
-
-## 6. Example Usage & Output
-
-### CLI Execution Example:
 ```
-==================================================
-SatQuery AI — Inference Result
-==================================================
-Image:     sample_patch.tif
-Question:  What is visible in this satellite image?
-Model:     Qwen/Qwen2-VL-2B-Instruct
-Answer:    The satellite patch shows agricultural land, vegetation parcels, and nearby road networks.
-Latency:   1.142s
-==================================================
-```
-
-### API Output Schema:
-```json
-{
-  "answer": "The image displays non-irrigated arable crop parcels and adjacent forest stands.",
-  "model": "Qwen/Qwen2-VL-2B-Instruct",
-  "confidence": null,
-  "metadata": {
-    "filename": "sample_patch.tif",
-    "driver": "GTiff",
-    "count": 3,
-    "shape": [3, 256, 256],
-    "crs": "EPSG:32630",
-    "is_geospatial": true
-  },
-  "execution_time_sec": 1.142
-}
+satquery-ai/
+├── configs/
+│   └── model.yaml                # Model candidate matrix & hyperparameters
+├── data/
+│   └── samples/                  # Sample GeoTIFFs, PNGs, and annotations
+├── notebooks/
+│   └── 01_bigearthnet_exploration.ipynb  # BigEarthNet dataset schema analysis
+├── outputs/
+│   ├── executions.jsonl          # Provenance audit logs
+│   └── temp_uploads/             # Temp storage for normalized previews
+├── scripts/
+│   ├── create_sample_data.py     # Script to generate sample GeoTIFFs
+│   └── run_server.py             # Server launcher with hot-reload
+├── src/
+│   └── satquery/
+│       ├── api/
+│       │   └── main.py           # FastAPI backend (/health, /preview, /vqa, /executions)
+│       ├── geo/
+│       │   └── image_loader.py   # Multi-band GeoTIFF loader & percentile normalizer
+│       ├── schemas/
+│       │   └── vqa.py            # Pydantic schemas
+│       ├── utils/
+│       │   └── logging.py        # Audit & provenance logger
+│       └── vqa/
+│           ├── inference.py      # Core VQA inference controller
+│           └── model.py          # Model loader (Qwen2-VL & MockVQAModel)
+├── tests/                        # 16 automated pytest unit tests
+├── web/
+│   ├── index.html                # Frontend UI
+│   ├── style.css                 # Styling & dark-mode theme
+│   └── app.js                    # Dynamic preview, VQA dispatcher, metadata drawer
+├── pytest.ini                    # Pytest configuration
+├── pyproject.toml                # Package configuration
+├── requirements.txt              # Project dependencies
+└── README.md
 ```
 
 ---
 
-## 7. Known Limitations (Prototype 1)
+## 🗺️ 5. Next Milestones (Prototypes 2–8)
 
-1. **Confidence Scores:** Confidence remains `null` because standard autoregressive generative VLMs do not produce calibrated probabilistic confidence without uncalibrated token-level softmax.
-2. **Single-Scene Only:** Does not yet support bi-temporal change detection or temporal time series.
-3. **No Direct Grounding Overlays:** Visual bounding box grounding will be integrated in Prototype 2.
-4. **Spectral Subsetting:** Multi-band GeoTIFFs (>3 bands) are dynamically mapped to RGB composites with 2%-98% percentile stretching. Full 12-band multi-spectral fusion is planned for later prototypes.
+- **Prototype 2:** Visual Grounding (overlaying bounding boxes on UI for objects/water/roads).
+- **Prototype 3:** Bi-Temporal Change Detection & CDVQA (before/after comparison).
+- **Prototype 4:** Optical + SAR Cross-Modal Fusion (Sentinel-1 SAR + Sentinel-2 Optical).
+- **Prototype 5:** Agentic Query-Driven Model & Tool Routing.
+- **Prototype 6:** Domain Adaptation & Fine-Tuning on BigEarthNet.txt.
+- **Prototype 7:** Bhoonidhi & ISRO/SAC API Data Connector.
+- **Prototype 8:** Final Unified SIH Demonstration System.
 
 ---
 
-## 8. Next Prototype Stages
-
-- **Prototype 2:** Add visual grounding (bounding box localization for RS features).
-- **Prototype 3:** Add bi-temporal change analysis (before/after disaster & urban expansion).
-- **Prototype 4:** Add optical + SAR multi-sensor fusion.
-- **Prototype 5:** Add agentic model and tool routing.
-- **Prototype 6:** Fine-tune domain-specific VLM on full BigEarthNet.txt.
-- **Prototype 7:** Bhoonidhi & ISRO satellite data API integration.
-- **Prototype 8:** Final unified SIH 2026 demonstration system.
+## 👥 Team Details (Team Saverra)
+- **Kumar Amityush** (Team Leader) — *AI/ML & Overall Development*
+- **Shreya Shrikant Jadhav** — *Research, Testing & Evaluation*
+- **Rashes Kumar Tripathy** — *Vision Language Models & Fine-tuning*
+- **Samadrita Dutta Gupta** — *Backend & Integration*
+- **Shivam Kumar** — *Frontend & Visualisation*
+- **Pavitra Patel** — *Remote Sensing & Image Processing*
