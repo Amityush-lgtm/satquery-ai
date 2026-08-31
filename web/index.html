@@ -76,9 +76,29 @@
     <!-- Interactive Console Section -->
     <section class="section-container" id="console">
       <div class="section-header">
-        <div class="eyebrow small"><span class="dot"></span> Interactive VQA Workspace</div>
+        <div class="eyebrow small"><span class="dot"></span> Agentic Multimodal Workspace</div>
         <h2>Earth Observation Analysis Console</h2>
-        <p>Drop in any satellite scene to inspect geospatial telemetry and query with natural language.</p>
+        <p>Select your operational workflow, drop in geospatial imagery, and query with natural language.</p>
+      </div>
+
+      <!-- Workflow Mode Selector Tabs -->
+      <div class="mode-tabs-container">
+        <button type="button" class="mode-tab active" data-mode="vqa">
+          <span class="mode-icon">🔍</span>
+          <span class="mode-name">Single-Scene VQA</span>
+        </button>
+        <button type="button" class="mode-tab" data-mode="grounding">
+          <span class="mode-icon">🎯</span>
+          <span class="mode-name">Visual Grounding</span>
+        </button>
+        <button type="button" class="mode-tab" data-mode="bitemporal_change">
+          <span class="mode-icon">⏳</span>
+          <span class="mode-name">Bi-Temporal Change (T1 &amp; T2)</span>
+        </button>
+        <button type="button" class="mode-tab" data-mode="optical_sar_fusion">
+          <span class="mode-icon">🛰️</span>
+          <span class="mode-name">Optical + SAR Fusion</span>
+        </button>
       </div>
 
       <div class="workspace-grid">
@@ -86,15 +106,16 @@
         <div class="card bracket-card">
           <span class="bracket tl"></span><span class="bracket br"></span>
           <div class="card-badge">Step 1</div>
-          <h3>Input Satellite Data</h3>
-          <p class="card-sub">Upload your raw raster or multispectral imagery.</p>
+          <h3 id="panelTitle">Input Satellite Data</h3>
+          <p class="card-sub" id="panelSubtitle">Upload your raw raster or multispectral imagery.</p>
 
           <form id="vqaForm">
+            <!-- Primary Image Upload -->
             <div class="form-group">
-              <label for="imageInput">Source Scene (GeoTIFF, TIFF, PNG, JPEG)</label>
+              <label for="imageInput" id="labelPrimaryImage">Primary Satellite Scene (GeoTIFF, TIFF, PNG, JPEG)</label>
               <div class="drop-zone" id="dropZone">
                 <div class="drop-icon">🛰️</div>
-                <p class="drop-text">Click or drag &amp; drop satellite image</p>
+                <p class="drop-text" id="dropTextPrimary">Click or drag &amp; drop primary image</p>
                 <span class="drop-hint">Supports CRS georeferenced rasters &amp; 16-bit GeoTIFFs</span>
                 <input type="file" id="imageInput" name="image" accept=".tif,.tiff,.png,.jpg,.jpeg" required>
               </div>
@@ -107,8 +128,26 @@
               </div>
             </div>
 
+            <!-- Secondary Image Upload (Visible in Bi-Temporal and Optical+SAR modes) -->
+            <div class="form-group hidden" id="secondaryGroup">
+              <label for="secondaryImageInput" id="labelSecondaryImage">Secondary Scene (T2 Date or SAR Microwave)</label>
+              <div class="drop-zone" id="dropZone2">
+                <div class="drop-icon">📡</div>
+                <p class="drop-text" id="dropTextSecondary">Click or drag &amp; drop secondary image</p>
+                <span class="drop-hint">Co-registered spatial footprint recommended</span>
+                <input type="file" id="secondaryImageInput" name="secondary_image" accept=".tif,.tiff,.png,.jpg,.jpeg">
+              </div>
+              <div id="fileInfo2" class="file-info hidden">
+                <div class="file-details">
+                  <span class="file-icon">📄</span>
+                  <span class="file-name" id="fileName2">No file selected</span>
+                </div>
+                <button type="button" class="btn-clear" id="btnClearFile2" title="Remove file">✕</button>
+              </div>
+            </div>
+
             <div class="form-group">
-              <label for="questionInput">Natural Language Question</label>
+              <label for="questionInput">Natural Language Query / Prompt</label>
               <div class="input-wrapper">
                 <input 
                   type="text" 
@@ -119,17 +158,17 @@
                   autocomplete="off"
                 >
               </div>
-              <div class="quick-questions">
+              <div class="quick-questions" id="quickQuestions">
                 <span class="quick-title">Presets:</span>
                 <button type="button" class="chip" data-q="What land cover types are visible in this image?">Land Cover</button>
-                <button type="button" class="chip" data-q="Are there any water bodies or rivers in this area?">Water Bodies</button>
-                <button type="button" class="chip" data-q="Is there urban infrastructure or buildings present?">Urban Area</button>
-                <button type="button" class="chip" data-q="Describe the agricultural parcels and vegetation.">Agriculture</button>
+                <button type="button" class="chip" data-q="Locate and highlight the water body in this scene.">Ground Water</button>
+                <button type="button" class="chip" data-q="What changed between these two dates and where did change occur?">Change Analysis</button>
+                <button type="button" class="chip" data-q="Use optical and SAR images together to identify built-up areas through clouds.">Optical-SAR Fusion</button>
               </div>
             </div>
 
             <button type="submit" id="btnAnalyse" class="btn-primary">
-              <span class="btn-text">Execute Vision Query</span>
+              <span class="btn-text">Execute Agentic Pipeline</span>
               <span class="spinner hidden" id="spinner"></span>
             </button>
           </form>
@@ -141,15 +180,31 @@
         <div class="card bracket-card">
           <span class="bracket tl"></span><span class="bracket br"></span>
           <div class="card-badge">Step 2</div>
-          <h3>Image Preview &amp; Metadata</h3>
-          <p class="card-sub">Server-side normalized raster with georeferenced header inspection.</p>
+          <h3>Image Preview &amp; Overlays</h3>
+          <p class="card-sub">Server-side normalized raster with interactive grounding &amp; difference layers.</p>
 
           <div class="image-preview-wrapper" id="previewWrapper">
             <div class="preview-placeholder" id="previewPlaceholder">
               <div class="placeholder-icon">🔭</div>
               <span>Upload or select a scene to preview raster and extract coordinates</span>
             </div>
-            <img id="imagePreview" class="image-preview hidden" alt="Satellite Preview">
+            <div class="preview-canvas-container" id="canvasContainer">
+              <img id="imagePreview" class="image-preview hidden" alt="Satellite Preview">
+              <img id="changeOverlay" class="change-overlay hidden" alt="Change Overlay">
+              <canvas id="groundingCanvas" class="grounding-canvas hidden"></canvas>
+            </div>
+          </div>
+
+          <!-- Controls for layers if available -->
+          <div class="layer-controls hidden" id="layerControls">
+            <label class="layer-toggle">
+              <input type="checkbox" id="toggleGrounding" checked>
+              <span>Show Grounding Boxes</span>
+            </label>
+            <label class="layer-toggle hidden" id="toggleChangeLayer">
+              <input type="checkbox" id="toggleChange" checked>
+              <span>Show Change Heatmap</span>
+            </label>
           </div>
 
           <!-- Geospatial Metadata Drawer -->
@@ -180,20 +235,28 @@
         </div>
       </div>
 
-      <!-- Output Panel: Results & Provenance -->
+      <!-- Output Panel: Results & Agentic Trace -->
       <div class="card bracket-card results-card" id="resultsSection">
         <span class="bracket tl"></span><span class="bracket br"></span>
         <div class="results-header-bar">
           <div class="card-badge">Step 3</div>
           <div class="result-tags">
+            <span class="meta-tag">Task: <strong id="resTask">VQA</strong></span>
+            <span class="meta-tag">Tool: <strong id="resTool">—</strong></span>
             <span class="meta-tag">Model: <strong id="resModel">—</strong></span>
             <span class="meta-tag">Latency: <strong id="resLatency">—</strong></span>
             <span class="meta-tag">Confidence: <strong id="resConfidence">—</strong></span>
           </div>
         </div>
         <div class="result-content">
-          <h4>VLM Geospatial Inference:</h4>
-          <p id="resAnswer" class="answer-text">Awaiting query execution. Upload your imagery and click "Execute Vision Query".</p>
+          <h4>Agentic Evidence &amp; Answer:</h4>
+          <p id="resAnswer" class="answer-text">Awaiting query execution. Select a workflow mode and click "Execute Agentic Pipeline".</p>
+
+          <!-- Agent Trace Timeline -->
+          <div class="agent-trace-container hidden" id="agentTraceContainer">
+            <div class="trace-title">Observable Execution Trace:</div>
+            <div class="trace-steps" id="traceSteps"></div>
+          </div>
         </div>
       </div>
 

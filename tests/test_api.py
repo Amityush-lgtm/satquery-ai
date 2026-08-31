@@ -83,3 +83,36 @@ def test_api_preview_endpoint(client, sample_geotiff_image):
     assert "metadata" in data
     assert data["metadata"]["original_filename"] == "test_preview.tif"
 
+
+def test_api_agent_analyze_grounding(client, sample_png_image):
+    with open(sample_png_image, "rb") as f:
+        response = client.post(
+            "/agent/analyze",
+            data={"question": "Locate the water body in this image.", "task_mode": "grounding"},
+            files={"image": ("test_grounding.png", f, "image/png")},
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task"] == "grounding"
+    assert data["boxes"] is not None
+    assert len(data["boxes"]) > 0
+    assert "execution_trace" in data
+
+
+def test_api_agent_analyze_bitemporal(client, sample_png_image):
+    with open(sample_png_image, "rb") as f1, open(sample_png_image, "rb") as f2:
+        response = client.post(
+            "/agent/analyze",
+            data={"question": "What changed between these two observation dates?", "task_mode": "bitemporal_change"},
+            files={
+                "image": ("t1.png", f1, "image/png"),
+                "secondary_image": ("t2.png", f2, "image/png"),
+            },
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["task"] == "bitemporal_change"
+    assert data["change_map_url"] is not None
+    assert "execution_trace" in data
+
+

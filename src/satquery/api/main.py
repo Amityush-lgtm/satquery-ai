@@ -14,13 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from satquery.agent.router import AgenticOrchestrator
 from satquery.geo.image_loader import (
     CorruptedImageError,
     ImageValidationError,
     UnsupportedFormatError,
     load_image,
 )
-from satquery.schemas.vqa import VQAResponse
+from satquery.schemas.vqa import AgentResponse, VQAResponse
 from satquery.utils.logging import PROVENANCE_FILE, get_logger, record_execution
 from satquery.vqa.model import BaseVQAModel, get_vqa_model
 
@@ -48,6 +49,10 @@ async def lifespan(app: FastAPI):
         # Fallback to mock for resilient startup
         app.state.model = get_vqa_model(force_mock=True)
 
+    # Initialize the Agentic Orchestrator
+    app.state.orchestrator = AgenticOrchestrator(vqa_model=app.state.model)
+    logger.info("Initialized Agentic Orchestrator with specialist tools.")
+
     yield
 
     logger.info("Shutting down SatQuery AI backend...")
@@ -55,8 +60,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="SatQuery AI API",
-    description="Remote Sensing Visual Question Answering Backend for SIH26167",
-    version="0.1.0",
+    description="Agentic Remote Sensing Vision-Language Assistant for SIH26167",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -80,8 +85,15 @@ async def health_check() -> Dict[str, Any]:
     return {
         "status": "healthy",
         "service": "SatQuery AI",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "active_model": model_id,
+        "agentic_capabilities": [
+            "single_image_vqa",
+            "visual_grounding",
+            "bitemporal_change_detection",
+            "optical_sar_crossmodal_fusion",
+            "geospatial_provenance_audit",
+        ],
     }
 
 
@@ -128,17 +140,18 @@ async def preview_image_endpoint(
                 pass
 
 
-@app.post("/vqa", response_model=VQAResponse)
-async def vqa_endpoint(
-    question: str = Form(..., description="Natural language question regarding the satellite image"),
-    image: UploadFile = File(..., description="Satellite image file (GeoTIFF, TIFF, PNG, JPEG)"),
-) -> VQAResponse:
+@app.post("/agent/analyze", response_model=AgentResponse)
+async def agent_analyze_endpoint(
+    question: str = Form(..., description="Natural language question or command"),
+    task_mode: Optional[str] = Form(None, description="Explicit task mode: vqa, grounding, bitemporal_change, optical_sar_fusion, or auto"),
+    image: UploadFile = File(..., description="Primary satellite image (GeoTIFF, TIFF, PNG, JPEG)"),
+    secondary_image: Optional[UploadFile] = None,
+) -> AgentResponse:
     """
-    Single-image Remote-Sensing Visual Question Answering.
-    Accepts an uploaded satellite image and user query, processes it through the VLM,
-    and returns answer, model identity, geospatial metadata, and latency.
+    Main Agentic Orchestrator Endpoint for SIH26167.
+    Accepts single or paired satellite images, classifies query intent,
+    routes to specialist tools, and returns evidence-grounded answers with observable traces.
     """
-    start_time = time.time()
     clean_question = question.strip()
     if not clean_question:
         raise HTTPException(
@@ -146,67 +159,78 @@ async def vqa_endpoint(
             detail="Question cannot be empty or whitespace.",
         )
 
-    # Save uploaded file safely to temporary disk
-    suffix = Path(image.filename).suffix if image.filename else ".tif"
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=TEMP_UPLOAD_DIR)
-    temp_path = Path(temp_file.name)
+    # Save primary image
+    suffix1 = Path(image.filename).suffix if image.filename else ".tif"
+    temp1 = tempfile.NamedTemporaryFile(delete=False, suffix=suffix1, dir=TEMP_UPLOAD_DIR)
+    temp1_path = Path(temp1.name)
 
+    temp2_path = None
     try:
-        with open(temp_path, "wb") as buffer:
+        with open(temp1_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
-        # 1. Load and validate image & geospatial metadata
         try:
-            geo_img = load_image(temp_path)
-        except FileNotFoundError as e:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-        except UnsupportedFormatError as e:
-            raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(e))
-        except (CorruptedImageError, ImageValidationError) as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+            geo_img1 = load_image(temp1_path)
+        except (UnsupportedFormatError, CorruptedImageError, ImageValidationError) as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Primary image error: {str(e)}")
 
-        # Update metadata filename with original upload name
-        geo_img.metadata["original_filename"] = image.filename
+        geo_img1.metadata["original_filename"] = image.filename
 
-        # 2. Acquire loaded model from app state
-        model: BaseVQAModel = app.state.model
+        geo_img2 = None
+        if isinstance(secondary_image, UploadFile) and secondary_image.filename:
+            suffix2 = Path(secondary_image.filename).suffix or ".tif"
+            temp2 = tempfile.NamedTemporaryFile(delete=False, suffix=suffix2, dir=TEMP_UPLOAD_DIR)
+            temp2_path = Path(temp2.name)
+            with open(temp2_path, "wb") as buffer:
+                shutil.copyfileobj(secondary_image.file, buffer)
+            try:
+                geo_img2 = load_image(temp2_path)
+                geo_img2.metadata["original_filename"] = secondary_image.filename
+            except Exception as e:
+                logger.warning(f"Error loading secondary image: {e}")
 
-        # 3. Perform inference
-        logger.info(f"API executing VQA query: '{clean_question}' on {image.filename} using {model.model_id}")
-        answer_text, confidence = model.generate_answer(
-            image=geo_img.pil_image,
-            question=clean_question,
+        # Execute through Agentic Orchestrator
+        orchestrator: AgenticOrchestrator = app.state.orchestrator
+        response = orchestrator.execute(
+            query=clean_question,
+            primary_image=geo_img1.pil_image,
+            secondary_image=geo_img2.pil_image if geo_img2 else None,
+            primary_meta=geo_img1.metadata,
+            secondary_meta=geo_img2.metadata if geo_img2 else None,
+            explicit_task=None if task_mode == "auto" else task_mode,
+            primary_filename=image.filename or "primary_image",
+            secondary_filename=secondary_image.filename if isinstance(secondary_image, UploadFile) and secondary_image.filename else None,
         )
 
-        inference_time = time.time() - start_time
-
-        # 4. Record provenance
-        record_execution(
-            task="vqa",
-            model_name=model.model_id,
-            image_path=image.filename or str(temp_path),
-            question=clean_question,
-            answer=answer_text,
-            execution_time_sec=inference_time,
-            metadata=geo_img.metadata,
-            confidence=confidence,
-        )
-
-        return VQAResponse(
-            answer=answer_text,
-            model=model.model_id,
-            confidence=confidence,
-            metadata=geo_img.metadata,
-            execution_time_sec=round(inference_time, 4),
-        )
+        return response
 
     finally:
-        # Clean up temporary uploaded file
-        if temp_path.exists():
-            try:
-                temp_path.unlink()
-            except Exception:
-                pass
+        for p in [temp1_path, temp2_path]:
+            if p and p.exists():
+                try:
+                    p.unlink()
+                except Exception:
+                    pass
+
+
+@app.post("/vqa", response_model=VQAResponse)
+async def vqa_endpoint(
+    question: str = Form(..., description="Natural language question regarding the satellite image"),
+    image: UploadFile = File(..., description="Satellite image file (GeoTIFF, TIFF, PNG, JPEG)"),
+) -> VQAResponse:
+    """
+    Backward-compatible single-image VQA endpoint routed through the agent.
+    """
+    res = await agent_analyze_endpoint(question=question, image=image, secondary_image=None)
+    return VQAResponse(
+        answer=res.answer,
+        model=res.model,
+        confidence=res.confidence,
+        metadata=res.metadata,
+        execution_time_sec=res.execution_time_sec,
+        boxes=res.boxes,
+        task_type=res.task,
+    )
 
 
 @app.get("/executions")

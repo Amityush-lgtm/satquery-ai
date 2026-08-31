@@ -1,5 +1,23 @@
-from typing import Any, Dict, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
+
+
+class AgentTaskType(str, Enum):
+    VQA = "vqa"
+    GROUNDING = "grounding"
+    BITEMPORAL_CHANGE = "bitemporal_change"
+    OPTICAL_SAR_FUSION = "optical_sar_fusion"
+
+
+class BoundingBox(BaseModel):
+    """Normalized spatial bounding box coordinates [0.0 - 1.0] for visual grounding."""
+    ymin: float = Field(..., description="Top coordinate (0.0 to 1.0)")
+    xmin: float = Field(..., description="Left coordinate (0.0 to 1.0)")
+    ymax: float = Field(..., description="Bottom coordinate (0.0 to 1.0)")
+    xmax: float = Field(..., description="Right coordinate (0.0 to 1.0)")
+    label: Optional[str] = Field("target", description="Class or description of grounded entity")
+    confidence: Optional[float] = Field(None, description="Confidence score for this detection")
 
 
 class GeoMetadata(BaseModel):
@@ -28,6 +46,22 @@ class VQAResponse(BaseModel):
     confidence: Optional[float] = Field(None, description="Calibrated confidence score if supported by model, null otherwise")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Image and execution metadata")
     execution_time_sec: Optional[float] = Field(None, description="Total inference time in seconds")
+    boxes: Optional[List[BoundingBox]] = Field(default=None, description="Visual grounding bounding boxes if applicable")
+    task_type: Optional[str] = Field("vqa", description="Identified remote sensing task type")
+
+
+class AgentResponse(BaseModel):
+    """Unified response from the Agentic Orchestrator."""
+    answer: str = Field(..., description="Evidence-grounded natural language explanation")
+    task: str = Field(..., description="Selected specialist task (vqa, grounding, bitemporal_change, optical_sar_fusion)")
+    model: str = Field(..., description="Specialist model or fusion engine executed")
+    tool_used: str = Field(..., description="Tool name invoked by the agent")
+    confidence: Optional[float] = Field(None, description="Estimated confidence score")
+    boxes: Optional[List[BoundingBox]] = Field(default=None, description="Visual grounding bounding boxes")
+    change_map_url: Optional[str] = Field(default=None, description="Base64 PNG or URL of change heatmap overlay")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Primary and secondary image metadata")
+    execution_time_sec: float = Field(..., description="Total execution latency in seconds")
+    execution_trace: Dict[str, Any] = Field(default_factory=dict, description="Observable step-by-step agentic execution trace")
 
 
 class ExecutionRecord(BaseModel):
@@ -41,3 +75,4 @@ class ExecutionRecord(BaseModel):
     execution_time_sec: float
     timestamp: str
     metadata: Dict[str, Any]
+    boxes: Optional[List[Dict[str, Any]]] = None

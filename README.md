@@ -1,4 +1,4 @@
-# SatQuery AI — Prototype 1
+# SatQuery AI — Agentic Multimodal Remote Sensing Assistant
 ### Smart India Hackathon 2026 · Problem Statement ID: SIH26167
 **Team:** Saverra · **Institution:** IIT Madras BS Degree Programme  
 **Theme:** Space Technology · **Category:** Software
@@ -7,24 +7,37 @@
 
 ## 🛰️ 1. Project Overview
 
-**SatQuery AI** is an intelligent, agentic vision-language assistant for Earth Observation (EO) and remote sensing data. 
+**SatQuery AI** is an interactive, agentic vision-language assistant for Earth Observation (EO) and remote sensing data. Instead of applying a single generic model, SatQuery AI automatically interprets natural language queries, validates input modalities, selects specialist remote-sensing tools, and returns evidence-grounded spatial and textual insights with transparent provenance.
 
-**Prototype 1** establishes the core baseline pipeline:
-$$\text{Satellite Image (GeoTIFF, TIFF, PNG, JPEG)} + \text{Natural Language Query} \xrightarrow{\text{Remote-Sensing VLM}} \text{Evidence-Grounded Answer}$$
-
-### Key Capabilities in Prototype 1:
-1. **Geospatial Raster Ingestion:** Reads **GeoTIFF**, TIFF, PNG, and JPEG files with full extraction of Coordinate Reference System (`CRS`), Affine geotransform, bounding box, and radiometric bands.
-2. **Dynamic 2%–98% Percentile Normalization:** Automatically converts 16-bit and multi-band satellite rasters into clean RGB composites suitable for Vision-Language Models.
-3. **Live Browser GeoTIFF Preview:** Server-side `/preview` endpoint renders GeoTIFFs directly into the web browser while populating geospatial metadata drawers.
-4. **VLM Integration (`Qwen2-VL-2B-Instruct`):** Integrated open-source remote-sensing vision-language model with dynamic resolution handling and fallback Mock VLM mode.
-5. **Interactive Web UI & REST API:** Modern responsive interface with instant previews, sample presets, latency monitoring, and auditable execution logging (`outputs/executions.jsonl`).
-6. **Automated Test Suite:** 16 unit and integration tests passing 100%.
+```
+                   User Query + Satellite Image(s)
+                                 ↓
+                 [ Agentic Query & Task Router ]
+                                 ↓
+     ┌──────────────────┬──────────────────┬──────────────────┐
+     ↓                  ↓                  ↓                  ↓
+[Tool 1: VQA]    [Tool 2: Grounding]  [Tool 3: Change]   [Tool 4: Opt+SAR]
+Single GeoTIFF    Neon Bounding Box    Bi-Temporal Pair   Co-registered Pair
+     └──────────────────┴──────────────────┴──────────────────┘
+                                 ↓
+       [ Interactive UI with Overlays & Observable Audit Logs ]
+```
 
 ---
 
-## 💻 2. Team Setup Guide (Get It Running on Your System)
+## ✨ 2. Core Functional Pillars
 
-Follow these steps to set up and run SatQuery AI on your machine.
+| Pillar | Capability | Operational Output |
+| :--- | :--- | :--- |
+| **1. Single-Image VQA** | Answers domain-specific questions on optical & multispectral imagery. | Natural language explanation with latency and confidence telemetry. |
+| **2. Visual Grounding** | Localizes target entities (water bodies, agricultural parcels, urban built-up, runways). | Interactive glowing bounding boxes with class tags drawn directly on the canvas. |
+| **3. Bi-Temporal Change Analysis** | Ingests before/after ($T_1, T_2$) image pairs for disaster, flood, and urban change. | CDVQA description + colorized change heatmap overlay. |
+| **4. Optical + SAR Fusion** | Ingests co-registered optical (Sentinel-2) + SAR radar (Sentinel-1) pairs. | All-weather built-up and water body extraction penetrating cloud cover. |
+| **5. Agentic Orchestration** | Automatically routes queries to the optimal specialist tool. | Observable step-by-step execution trace recorded in `outputs/executions.jsonl`. |
+
+---
+
+## 💻 3. Quickstart & Setup Guide
 
 ### Prerequisites:
 - **Operating System:** Windows 10/11, macOS, or Ubuntu/Linux
@@ -68,102 +81,95 @@ pip install -e . --no-deps
 
 ---
 
-### Step 4: Generate Sample GeoTIFF & Image Datasets
-Run the script to generate sample multi-band GeoTIFFs and test imagery in `data/samples/`:
+### Step 4: Generate Multi-Modal Sample Datasets
 ```powershell
 python scripts/create_sample_data.py
 ```
 This generates:
-- `data/samples/sample_patch.tif` (Multi-band GeoTIFF)
-- `data/samples/sample_agricultural.tif` (GeoTIFF)
+- `data/samples/sample_patch.tif` (16-bit Multi-band GeoTIFF with CRS)
 - `data/samples/sample_urban.png` (High-resolution optical PNG)
+- `data/samples/sample_bitemporal_t1.png` & `sample_bitemporal_t2.png` (Flood change pair)
+- `data/samples/sample_optical_s2.png` & `sample_sar_s1.png` (Cloudy optical + Penetrating SAR pair)
 
 ---
 
-## 🚀 3. How to Run the Application
+## 🚀 4. How to Run
 
-### Option A: Launch Interactive Web Application (Recommended)
+### Option A: Launch Interactive Web Workspace (Recommended)
 
-#### Mode 1: Fast Testing / Mock Mode (Starts Instantly, No GPU or Download Needed)
-If you do not have a dedicated GPU or want to test the Web UI without waiting for 4.5 GB model weights to download:
 ```powershell
-# Windows PowerShell
+# Windows PowerShell (Instant Fast Mode)
 $env:SATQUERY_MOCK_MODEL="1"
 python scripts/run_server.py
 
-# macOS / Linux Bash
-SATQUERY_MOCK_MODEL=1 python scripts/run_server.py
-```
+# Windows PowerShell (Production Qwen2-VL Model)
+python scripts/run_server.py
 
-#### Mode 2: Production VLM Mode (Downloads and Uses `Qwen2-VL-2B-Instruct`)
-```powershell
+# macOS / Linux Bash
 python scripts/run_server.py
 ```
-*(Note: On first run, it will automatically download ~4.5 GB weights from Hugging Face).*
 
-Once started, open your browser and navigate to:
+Open your browser:  
 👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 
 ---
 
-### Option B: Command-Line Interface (CLI)
-
-You can run single queries directly from the terminal:
-
-```powershell
-# Run with fast mock model:
-python -m satquery.vqa --image data/samples/sample_patch.tif --question "What is visible in this satellite image?" --mock
-
-# Run with full Qwen2-VL model:
-python -m satquery.vqa --image data/samples/sample_patch.tif --question "What land cover types are present?"
-```
-
----
-
-### Option C: Run Automated Tests
-
-To verify that all components (image loader, VQA model, API endpoints, GeoTIFF preview) are working:
+### Option B: Run Automated Test Suite
 ```powershell
 pytest -v
 ```
-All 16 tests should pass with green checks.
+All **30/30 unit & integration tests** will pass in under 2 seconds.
 
 ---
 
-## 📂 4. Project Structure
+### Option C: Command-Line Interface (CLI)
+```powershell
+python -m satquery.vqa --image data/samples/sample_patch.tif --question "What is visible in this satellite image?" --mock
+```
+
+---
+
+## 📂 5. Project Architecture
 
 ```
 satquery-ai/
 ├── configs/
-│   └── model.yaml                # Model candidate matrix & hyperparameters
+│   └── model.yaml                # Model matrix & hyperparameters
 ├── data/
-│   └── samples/                  # Sample GeoTIFFs, PNGs, and annotations
+│   └── samples/                  # Sample GeoTIFFs, PNGs, Bi-temporal & SAR pairs
 ├── notebooks/
-│   └── 01_bigearthnet_exploration.ipynb  # BigEarthNet dataset schema analysis
+│   └── 01_bigearthnet_exploration.ipynb  # BigEarthNet.txt exploration notebook
 ├── outputs/
 │   ├── executions.jsonl          # Provenance audit logs
-│   └── temp_uploads/             # Temp storage for normalized previews
+│   └── temp_uploads/             # Normalized raster previews
 ├── scripts/
-│   ├── create_sample_data.py     # Script to generate sample GeoTIFFs
-│   └── run_server.py             # Server launcher with hot-reload
+│   ├── create_sample_data.py     # Sample dataset generator
+│   └── run_server.py             # Hot-reloading server launcher
 ├── src/
 │   └── satquery/
+│       ├── agent/
+│       │   └── router.py         # Agentic Task Router & Execution Tracer
+│       ├── analysis/
+│       │   ├── change.py         # Bi-temporal change detection & CDVQA
+│       │   ├── crossmodal.py     # Optical + SAR cross-modal fusion
+│       │   └── grounding.py      # Visual grounding & bounding box engine
 │       ├── api/
-│       │   └── main.py           # FastAPI backend (/health, /preview, /vqa, /executions)
+│       │   └── main.py           # FastAPI backend (/health, /preview, /agent/analyze)
 │       ├── geo/
-│       │   └── image_loader.py   # Multi-band GeoTIFF loader & percentile normalizer
+│       │   └── image_loader.py   # Multi-band GeoTIFF loader & percentile stretch
 │       ├── schemas/
-│       │   └── vqa.py            # Pydantic schemas
+│       │   └── vqa.py            # Pydantic schemas (AgentResponse, BoundingBox)
 │       ├── utils/
 │       │   └── logging.py        # Audit & provenance logger
 │       └── vqa/
-│           ├── inference.py      # Core VQA inference controller
-│           └── model.py          # Model loader (Qwen2-VL & MockVQAModel)
-├── tests/                        # 16 automated pytest unit tests
+│           ├── inference.py      # VQA inference controller
+│           └── model.py          # Model singleton (Qwen2-VL & MockVQAModel)
+├── tests/                        # 30 automated pytest tests
 ├── web/
-│   ├── index.html                # Frontend UI
-│   ├── style.css                 # Styling & dark-mode theme
-│   └── app.js                    # Dynamic preview, VQA dispatcher, metadata drawer
+│   ├── index.html                # Frontend UI with workflow mode tabs
+│   ├── style.css                 # Celestial dark-mode styling & canvas overlays
+│   ├── app.js                    # Dynamic preview, bounding box renderer, trace drawer
+│   └── three.min.js              # Three.js celestial background
 ├── pytest.ini                    # Pytest configuration
 ├── pyproject.toml                # Package configuration
 ├── requirements.txt              # Project dependencies
@@ -172,19 +178,7 @@ satquery-ai/
 
 ---
 
-## 🗺️ 5. Next Milestones (Prototypes 2–8)
-
-- **Prototype 2:** Visual Grounding (overlaying bounding boxes on UI for objects/water/roads).
-- **Prototype 3:** Bi-Temporal Change Detection & CDVQA (before/after comparison).
-- **Prototype 4:** Optical + SAR Cross-Modal Fusion (Sentinel-1 SAR + Sentinel-2 Optical).
-- **Prototype 5:** Agentic Query-Driven Model & Tool Routing.
-- **Prototype 6:** Domain Adaptation & Fine-Tuning on BigEarthNet.txt.
-- **Prototype 7:** Bhoonidhi & ISRO/SAC API Data Connector.
-- **Prototype 8:** Final Unified SIH Demonstration System.
-
----
-
-## 👥 Team Details (Team Saverra)
+## 👥 Team Details (Team Saverra — IIT Madras BS Degree Programme)
 - **Kumar Amityush** (Team Leader) — *AI/ML & Overall Development*
 - **Shreya Shrikant Jadhav** — *Research, Testing & Evaluation*
 - **Rashes Kumar Tripathy** — *Vision Language Models & Fine-tuning*
