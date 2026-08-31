@@ -162,9 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const provenanceFeed = document.getElementById('provenanceFeed');
   const btnRefreshProv = document.getElementById('btnRefreshProv');
 
-  // One-Click Sample Buttons
-  const btnSampleAgri = document.getElementById('btnSampleAgri');
-  const btnSampleUrban = document.getElementById('btnSampleUrban');
+
 
   // Fetch Health & Active Model on load
   async function checkHealth() {
@@ -329,47 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Helper to load sample files
-  async function loadSample(sampleUrl, fileNameStr, questionPreset) {
-    try {
-      const res = await fetch(sampleUrl);
-      if (!res.ok) throw new Error('Sample file could not be fetched');
-      const blob = await res.blob();
-      const file = new File([blob], fileNameStr, { type: blob.type || 'application/octet-stream' });
-      
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      imageInput.files = dataTransfer.files;
-      
-      await handleFile(file);
 
-      if (questionPreset) {
-        questionInput.value = questionPreset;
-      }
-    } catch (err) {
-      showAlert(`Could not load sample: ${err.message}`, true);
-    }
-  }
-
-  if (btnSampleAgri) {
-    btnSampleAgri.addEventListener('click', () => {
-      loadSample(
-        '/static/samples/sample_agricultural.tif',
-        'sample_agricultural.tif',
-        'Describe the agricultural parcels and vegetation.'
-      );
-    });
-  }
-
-  if (btnSampleUrban) {
-    btnSampleUrban.addEventListener('click', () => {
-      loadSample(
-        '/static/samples/sample_urban.png',
-        'sample_urban.png',
-        'Is there urban infrastructure or buildings present?'
-      );
-    });
-  }
 
   // Form Submission
   vqaForm.addEventListener('submit', async (e) => {
@@ -377,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearAlert();
 
     if (!imageInput.files || imageInput.files.length === 0) {
-      showAlert('Please select or upload a satellite image or select a sample.');
+      showAlert('Please select or upload a satellite image.');
       return;
     }
 
