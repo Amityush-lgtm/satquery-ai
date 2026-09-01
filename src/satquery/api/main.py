@@ -253,11 +253,19 @@ async def get_recent_executions(limit: int = 10) -> List[Dict[str, Any]]:
     return records
 
 
-# Mount static files for lightweight Web UI
+# Mount static files and multi-route page handlers for Web UI
 web_dir = Path("web")
 if web_dir.exists():
     app.mount("/static", StaticFiles(directory="web"), name="static")
 
     @app.get("/")
-    async def serve_index():
+    @app.get("/overview")
+    @app.get("/vqa")
+    @app.get("/grounding")
+    @app.get("/change")
+    @app.get("/fusion")
+    @app.get("/provenance")
+    async def serve_app_view():
+        """Serves the main application with client-side route hydration."""
         return FileResponse(web_dir / "index.html")
+

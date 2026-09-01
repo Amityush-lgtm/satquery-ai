@@ -147,6 +147,29 @@ nav a:hover {
   color: #fff;
 }
 
+nav a.active {
+  background: rgba(232, 98, 44, 0.22);
+  border-color: #ff9a56;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(232, 98, 44, 0.35);
+}
+
+.app-view {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 .cta {
   background: linear-gradient(180deg, #ff9a56, #e8622c);
   color: #1a0e06 !important;
@@ -1014,6 +1037,46 @@ input[type="text"]:focus {
   font-style: italic;
   padding: 8px 0;
 }
+
+/* Fullscreen Provenance Explorer */
+.prov-fullscreen-card {
+  padding: 32px 36px;
+  min-height: 480px;
+}
+
+.prov-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.prov-feed-fullscreen {
+  max-height: 520px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.prov-feed-fullscreen .prov-item {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.prov-feed-fullscreen .prov-item:hover {
+  border-color: rgba(255, 154, 86, 0.3);
+  background: rgba(232, 98, 44, 0.06);
+}
+
 
 /* --------------------------------------------------------------------------
    Panel Sections (Capabilities, How it works, Trust)

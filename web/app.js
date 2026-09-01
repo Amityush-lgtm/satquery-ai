@@ -1,5 +1,5 @@
 /**
- * SatQuery.ai — Interactive Frontend & Three.js Celestial Background
+ * SatQuery.ai — Interactive Frontend, Multi-Route SPA Router, & Three.js Celestial Background
  */
 
 // ============================================================================
@@ -130,11 +130,12 @@
 
 
 // ============================================================================
-// 2. SatQuery AI Agentic Application Logic
+// 2. SatQuery AI Multi-Route SPA & Agentic Logic
 // ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
   let currentMode = 'vqa'; // 'vqa', 'grounding', 'bitemporal_change', 'optical_sar_fusion'
   let cachedBoxes = [];
+  let executionHistory = [];
 
   // DOM Form & Input Elements
   const vqaForm = document.getElementById('vqaForm');
@@ -163,6 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const modelBadge = document.getElementById('modelBadge');
   const quickQuestions = document.getElementById('quickQuestions');
 
+  // Studio Header Elements
+  const workspaceBadge = document.getElementById('workspaceBadge');
+  const workspaceTitle = document.getElementById('workspaceTitle');
+  const workspaceSubtitle = document.getElementById('workspaceSubtitle');
+  const panelTitle = document.getElementById('panelTitle');
+  const panelSubtitle = document.getElementById('panelSubtitle');
+
   // Layer Controls
   const layerControls = document.getElementById('layerControls');
   const toggleGrounding = document.getElementById('toggleGrounding');
@@ -185,44 +193,131 @@ document.addEventListener('DOMContentLoaded', () => {
   const agentTraceContainer = document.getElementById('agentTraceContainer');
   const traceSteps = document.getElementById('traceSteps');
   const provenanceFeed = document.getElementById('provenanceFeed');
+  const provenanceFeedFull = document.getElementById('provenanceFeedFull');
   const btnRefreshProv = document.getElementById('btnRefreshProv');
+  const btnExportJson = document.getElementById('btnExportJson');
 
-  // Mode Presets Configuration
-  const modePresets = {
-    vqa: [
-      { label: 'Land Cover', q: 'What land cover types are visible in this image?' },
-      { label: 'Water Features', q: 'Are there any water bodies or rivers in this area?' },
-      { label: 'Urban Density', q: 'Is there urban infrastructure or buildings present?' },
-      { label: 'Agriculture', q: 'Describe the agricultural parcels and vegetation canopy.' }
-    ],
-    grounding: [
-      { label: 'Highlight Water', q: 'Locate and highlight the water body in this scene.' },
-      { label: 'Locate Built-up', q: 'Draw bounding boxes around the urban built-up area.' },
-      { label: 'Find Agriculture', q: 'Highlight the agricultural crop parcels.' },
-      { label: 'Detect Roads', q: 'Locate road infrastructure and transit corridor.' }
-    ],
-    bitemporal_change: [
-      { label: 'Flood Inundation', q: 'What hydrologic or flood changes occurred between T1 and T2?' },
-      { label: 'Urban Expansion', q: 'Has the built-up area increased, decreased, or remained unchanged?' },
-      { label: 'Vegetation Shift', q: 'What vegetation and canopy changes are observable between dates?' },
-      { label: 'Overall Difference', q: 'What changed between these two dates and where did change occur?' }
-    ],
-    optical_sar_fusion: [
-      { label: 'All-Weather Built-up', q: 'Use optical and SAR images together to identify built-up areas through clouds.' },
-      { label: 'Water Consensus', q: 'Combine optical reflectance and SAR specular backscatter to map water bodies.' },
-      { label: 'Crop Volume', q: 'Fuse optical greenness with SAR volumetric roughness to profile crops.' },
-      { label: 'Multimodal Summary', q: 'Extract complementary information from this optical and SAR pair.' }
-    ]
+  // Studio Profiles per Route
+  const studioProfiles = {
+    vqa: {
+      badge: 'Single-Scene VQA Studio',
+      title: 'Remote-Sensing Visual Question Answering',
+      subtitle: 'Ask arbitrary natural-language questions about 16-bit GeoTIFFs or optical scenes.',
+      panelTitle: 'Input Satellite Scene',
+      panelSubtitle: 'Upload your single-scene GeoTIFF, TIFF, or PNG image.',
+      presets: [
+        { label: 'Land Cover', q: 'What land cover types are visible in this image?' },
+        { label: 'Water Features', q: 'Are there any water bodies or rivers in this area?' },
+        { label: 'Urban Density', q: 'Is there urban infrastructure or buildings present?' },
+        { label: 'Agriculture', q: 'Describe the agricultural parcels and vegetation canopy.' }
+      ]
+    },
+    grounding: {
+      badge: 'Visual Grounding Studio',
+      title: 'Target Entity Localization & Grounding',
+      subtitle: 'Locate specific remote-sensing features with real-time neon bounding box overlays.',
+      panelTitle: 'Input Target Scene',
+      panelSubtitle: 'Upload image for spatial referring expression grounding.',
+      presets: [
+        { label: 'Highlight Water', q: 'Locate and highlight the water body in this scene.' },
+        { label: 'Locate Built-up', q: 'Draw bounding boxes around the urban built-up area.' },
+        { label: 'Find Agriculture', q: 'Highlight the agricultural crop parcels.' },
+        { label: 'Detect Roads', q: 'Locate road infrastructure and transit corridor.' }
+      ]
+    },
+    bitemporal_change: {
+      badge: 'Bi-Temporal Change Studio',
+      title: 'Multi-Temporal Change Detection & CDVQA',
+      subtitle: 'Compare Date T1 and Date T2 image pairs to quantify changes and generate difference maps.',
+      panelTitle: 'Input Observation Pair (T1 & T2)',
+      panelSubtitle: 'Upload before and after images of the same geographic footprint.',
+      presets: [
+        { label: 'Flood Inundation', q: 'What hydrologic or flood changes occurred between T1 and T2?' },
+        { label: 'Urban Expansion', q: 'Has the built-up area increased, decreased, or remained unchanged?' },
+        { label: 'Vegetation Shift', q: 'What vegetation and canopy changes are observable between dates?' },
+        { label: 'Overall Difference', q: 'What changed between these two dates and where did change occur?' }
+      ]
+    },
+    optical_sar_fusion: {
+      badge: 'Optical + SAR Multimodal Fusion',
+      title: 'Multi-Sensor Complementary Reasoning',
+      subtitle: 'Fuse Sentinel-2 (optical reflectance) with Sentinel-1 (polarimetric radar) to penetrate cloud cover.',
+      panelTitle: 'Input Multimodal Pair',
+      panelSubtitle: 'Upload co-registered Optical MSI and SAR radar imagery.',
+      presets: [
+        { label: 'All-Weather Built-up', q: 'Use optical and SAR images together to identify built-up areas through clouds.' },
+        { label: 'Water Consensus', q: 'Combine optical reflectance and SAR specular backscatter to map water bodies.' },
+        { label: 'Crop Volume', q: 'Fuse optical greenness with SAR volumetric roughness to profile crops.' },
+        { label: 'Multimodal Summary', q: 'Extract complementary information from this optical and SAR pair.' }
+      ]
+    }
   };
 
-  // Switch Workflow Mode Tabs
-  document.querySelectorAll('.mode-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentMode = tab.dataset.mode;
-      updateModeUI();
+  // ==========================================================================
+  // Router Implementation
+  // ==========================================================================
+  function navigateToRoute(route, pushState = true) {
+    let cleanRoute = (route || '').replace(/^\//, '').trim().toLowerCase();
+    if (!cleanRoute || cleanRoute === 'index.html') cleanRoute = 'overview';
+
+    const viewOverview = document.getElementById('viewOverview');
+    const viewWorkspace = document.getElementById('viewWorkspace');
+    const viewProvenance = document.getElementById('viewProvenance');
+
+    // Hide all views
+    viewOverview.classList.add('hidden');
+    viewWorkspace.classList.add('hidden');
+    viewProvenance.classList.add('hidden');
+
+    // Update Nav Link Active States
+    document.querySelectorAll('.nav-link').forEach(link => {
+      const linkRoute = (link.dataset.route || '').toLowerCase();
+      if (linkRoute === cleanRoute || (cleanRoute === 'overview' && linkRoute === '')) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
     });
+
+    if (cleanRoute === 'overview') {
+      viewOverview.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (cleanRoute === 'provenance') {
+      viewProvenance.classList.remove('hidden');
+      loadProvenanceFull();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Workspace Studios: vqa, grounding, change, fusion
+      viewWorkspace.classList.remove('hidden');
+
+      if (cleanRoute === 'vqa') currentMode = 'vqa';
+      else if (cleanRoute === 'grounding') currentMode = 'grounding';
+      else if (cleanRoute === 'change' || cleanRoute === 'bitemporal_change') currentMode = 'bitemporal_change';
+      else if (cleanRoute === 'fusion' || cleanRoute === 'optical_sar_fusion') currentMode = 'optical_sar_fusion';
+      else currentMode = 'vqa';
+
+      updateModeUI();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    if (pushState) {
+      const targetUrl = cleanRoute === 'overview' ? '/' : `/${cleanRoute}`;
+      history.pushState({ route: cleanRoute }, '', targetUrl);
+    }
+  }
+
+  // Intercept Nav Links
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const route = link.dataset.route || link.getAttribute('href');
+      navigateToRoute(route, true);
+    });
+  });
+
+  window.addEventListener('popstate', () => {
+    const currentPath = window.location.pathname.replace(/^\//, '') || 'overview';
+    navigateToRoute(currentPath, false);
   });
 
   function updateModeUI() {
@@ -230,6 +325,14 @@ document.addEventListener('DOMContentLoaded', () => {
     clearGroundingCanvas();
     changeOverlay.classList.add('hidden');
     toggleChangeLayer.classList.add('hidden');
+
+    const profile = studioProfiles[currentMode] || studioProfiles.vqa;
+
+    workspaceBadge.textContent = profile.badge;
+    workspaceTitle.textContent = profile.title;
+    workspaceSubtitle.textContent = profile.subtitle;
+    panelTitle.textContent = profile.panelTitle;
+    panelSubtitle.textContent = profile.panelSubtitle;
 
     const labelPrimary = document.getElementById('labelPrimaryImage');
     const dropTextPrimary = document.getElementById('dropTextPrimary');
@@ -252,13 +355,13 @@ document.addEventListener('DOMContentLoaded', () => {
       dropTextPrimary.textContent = 'Click or drag & drop satellite image';
     }
 
-    // Update Presets
-    const presets = modePresets[currentMode] || modePresets.vqa;
+    // Populate Presets
+    const presets = profile.presets || [];
     quickQuestions.innerHTML = '<span class="quick-title">Presets:</span>' + presets.map(p => `
       <button type="button" class="chip" data-q="${escapeHtml(p.q)}">${escapeHtml(p.label)}</button>
     `).join('');
 
-    // Reattach chip listeners
+    // Attach chip listeners
     quickQuestions.querySelectorAll('.chip').forEach(chip => {
       chip.addEventListener('click', () => {
         questionInput.value = chip.dataset.q;
@@ -266,13 +369,12 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Default question
     if (presets.length > 0) {
       questionInput.placeholder = presets[0].q;
     }
   }
 
-  // Fetch Health & Active Model on load
+  // Fetch Health & Active Model
   async function checkHealth() {
     try {
       const res = await fetch('/health');
@@ -287,26 +389,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Fetch Provenance Audit Feed
+  // Fetch Provenance Feed
   async function loadProvenance() {
     try {
       const res = await fetch('/executions?limit=5');
       if (res.ok) {
         const data = await res.json();
-        if (data.length === 0) {
-          provenanceFeed.innerHTML = '<div class="prov-empty">No executions recorded yet. Run your first query above!</div>';
-          return;
-        }
-        provenanceFeed.innerHTML = data.map(item => `
-          <div class="prov-item">
-            <span><strong>${escapeHtml(item.task.toUpperCase())}</strong> [${escapeHtml(item.input)}]: "${escapeHtml(item.question)}"</span>
-            <span>${item.execution_time_sec}s • ${item.timestamp ? item.timestamp.split('T')[1].split('.')[0] : ''}</span>
-          </div>
-        `).join('');
+        executionHistory = data;
       }
     } catch (e) {
       console.error('Failed to load provenance feed', e);
     }
+  }
+
+  // Fullscreen Provenance Feed
+  async function loadProvenanceFull() {
+    try {
+      const res = await fetch('/executions?limit=50');
+      if (res.ok) {
+        const data = await res.json();
+        executionHistory = data;
+        if (provenanceFeedFull) {
+          if (data.length === 0) {
+            provenanceFeedFull.innerHTML = '<div class="prov-empty">No executions recorded yet. Launch a studio above to run queries!</div>';
+            return;
+          }
+          provenanceFeedFull.innerHTML = data.map((item, idx) => `
+            <div class="prov-item">
+              <div>
+                <div><strong>#${data.length - idx} [${escapeHtml((item.task || 'vqa').toUpperCase())}]</strong> — <em>${escapeHtml(item.model)}</em></div>
+                <div style="color: #c5cedd; margin-top: 4px;"><strong>Query:</strong> "${escapeHtml(item.question)}"</div>
+                <div style="color: #9aa4b8; font-size: 12px; margin-top: 2px;"><strong>Files:</strong> ${escapeHtml(item.input)}</div>
+                <div style="color: #5eead4; margin-top: 4px;"><strong>Result:</strong> ${escapeHtml(item.output)}</div>
+              </div>
+              <div style="text-align: right; flex-shrink: 0;">
+                <div style="color: #ff9a56; font-weight: 600;">${item.execution_time_sec}s</div>
+                <div style="font-size: 11px; color: #6f7a8c; margin-top: 4px;">${item.timestamp ? item.timestamp.replace('T', ' ').split('.')[0] : ''}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load full provenance', e);
+    }
+  }
+
+  // Export JSON functionality
+  if (btnExportJson) {
+    btnExportJson.addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(executionHistory, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "satquery_executions_ledger.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    });
   }
 
   function escapeHtml(str) {
@@ -325,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     alertBox.textContent = '';
   }
 
-  // Handle File Selection & Server-Side GeoTIFF Normalization
+  // Handle File Upload & Server-side Preview
   async function handleFile(file, isSecondary = false) {
     clearAlert();
     if (!file) return;
@@ -356,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Send to /preview endpoint
     const formData = new FormData();
     formData.append('image', file);
 
@@ -417,7 +555,6 @@ document.addEventListener('DOMContentLoaded', () => {
     layerControls.classList.remove('hidden');
     groundingCanvas.classList.remove('hidden');
 
-    const rect = imagePreview.getBoundingClientRect();
     const w = imagePreview.clientWidth || 300;
     const h = imagePreview.clientHeight || 240;
 
@@ -431,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!toggleGrounding.checked) return;
 
-    boxes.forEach((box, idx) => {
+    boxes.forEach((box) => {
       const bx = box.xmin * w;
       const by = box.ymin * h;
       const bw = (box.xmax - box.xmin) * w;
@@ -484,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Render Step-by-Step Observable Agentic Trace
+  // Render Observable Execution Trace
   function renderAgentTrace(trace) {
     if (!trace || !trace.steps) {
       agentTraceContainer.classList.add('hidden');
@@ -502,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  // Event Listeners for Uploads
+  // Event Listeners for File Selection
   imageInput.addEventListener('change', (e) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFile(e.target.files[0], false);
@@ -518,7 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnClearFile.addEventListener('click', () => resetFileSelection(false));
   btnClearFile2.addEventListener('click', () => resetFileSelection(true));
 
-  // Drag & Drop for Primary
+  // Drag & Drop Handling
   ['dragenter', 'dragover'].forEach(name => {
     dropZone.addEventListener(name, (e) => {
       e.preventDefault();
@@ -659,11 +796,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   if (btnRefreshProv) {
-    btnRefreshProv.addEventListener('click', loadProvenance);
+    btnRefreshProv.addEventListener('click', () => {
+      loadProvenance();
+      loadProvenanceFull();
+    });
   }
 
-  // Initial UI Initialization
-  updateModeUI();
+  // Initial Route Hydration from URL
+  const initialPath = window.location.pathname.replace(/^\//, '') || 'overview';
+  navigateToRoute(initialPath, false);
+
   checkHealth();
   loadProvenance();
 });
