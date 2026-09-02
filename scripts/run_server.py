@@ -11,17 +11,12 @@ sys.path.insert(0, str(root_dir / "src"))
 load_dotenv()
 
 def main():
-    # Render and other cloud platforms provide a PORT environment variable.
-    # If it exists, we must bind to 0.0.0.0 instead of 127.0.0.1.
-    env_port = os.getenv("PORT")
-    if env_port:
-        host = os.getenv("SATQUERY_HOST", "0.0.0.0")
-        port = int(env_port)
-        reload = False
-    else:
-        host = os.getenv("SATQUERY_HOST", "127.0.0.1")
-        port = int(os.getenv("SATQUERY_PORT", 8000))
-        reload = True
+    # Render and cloud platforms inject the PORT environment variable.
+    # Binding to 0.0.0.0 ensures the port is reachable both locally and on cloud servers.
+    port_env = os.getenv("PORT") or os.getenv("SATQUERY_PORT") or "8000"
+    port = int(port_env)
+    host = os.getenv("SATQUERY_HOST", "0.0.0.0")
+    reload = os.getenv("SATQUERY_RELOAD", "false").lower() in ("1", "true")
 
     print(f"Starting SatQuery AI Server on http://{host}:{port} ...")
     uvicorn.run("satquery.api.main:app", host=host, port=port, reload=reload)
