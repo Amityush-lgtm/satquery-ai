@@ -200,55 +200,55 @@ document.addEventListener('DOMContentLoaded', () => {
   // Studio Profiles per Route
   const studioProfiles = {
     vqa: {
-      badge: 'Single-Scene VQA Studio',
-      title: 'Remote-Sensing Visual Question Answering',
-      subtitle: 'Ask arbitrary natural-language questions about 16-bit GeoTIFFs or optical scenes.',
-      panelTitle: 'Input Satellite Scene',
-      panelSubtitle: 'Upload your single-scene GeoTIFF, TIFF, or PNG image.',
+      badge: 'Ask Questions (VQA)',
+      title: 'Ask Anything About a Satellite Image',
+      subtitle: 'Upload any satellite image or GeoTIFF and ask questions in plain English.',
+      panelTitle: 'Choose Your Image',
+      panelSubtitle: 'Upload a satellite picture or select one of the sample images.',
       presets: [
-        { label: 'Land Cover', q: 'What land cover types are visible in this image?' },
-        { label: 'Water Features', q: 'Are there any water bodies or rivers in this area?' },
-        { label: 'Urban Density', q: 'Is there urban infrastructure or buildings present?' },
-        { label: 'Agriculture', q: 'Describe the agricultural parcels and vegetation canopy.' }
+        { label: 'What is here?', q: 'What land types and objects are visible in this image?' },
+        { label: 'Any Water?', q: 'Are there any water bodies, lakes, or rivers here?' },
+        { label: 'Buildings & Cities', q: 'Are there buildings, roads, or cities present?' },
+        { label: 'Farms & Crops', q: 'Describe the farms, crops, and greenery in this scene.' }
       ]
     },
     grounding: {
-      badge: 'Visual Grounding Studio',
-      title: 'Target Entity Localization & Grounding',
-      subtitle: 'Locate specific remote-sensing features with real-time neon bounding box overlays.',
-      panelTitle: 'Input Target Scene',
-      panelSubtitle: 'Upload image for spatial referring expression grounding.',
+      badge: 'Find Objects',
+      title: 'Locate & Highlight Specific Areas',
+      subtitle: 'Find specific features on the ground with glowing highlight boxes.',
+      panelTitle: 'Choose Your Image',
+      panelSubtitle: 'Upload an image where you want to find and mark specific things.',
       presets: [
-        { label: 'Highlight Water', q: 'Locate and highlight the water body in this scene.' },
-        { label: 'Locate Built-up', q: 'Draw bounding boxes around the urban built-up area.' },
-        { label: 'Find Agriculture', q: 'Highlight the agricultural crop parcels.' },
-        { label: 'Detect Roads', q: 'Locate road infrastructure and transit corridor.' }
+        { label: 'Find Water', q: 'Find and highlight the water body in this image.' },
+        { label: 'Find Buildings', q: 'Draw boxes around the buildings and urban areas.' },
+        { label: 'Find Farms', q: 'Highlight the farm fields and crops.' },
+        { label: 'Find Roads', q: 'Locate the roads and transportation lines.' }
       ]
     },
     bitemporal_change: {
-      badge: 'Bi-Temporal Change Studio',
-      title: 'Multi-Temporal Change Detection & CDVQA',
-      subtitle: 'Compare Date T1 and Date T2 image pairs to quantify changes and generate difference maps.',
-      panelTitle: 'Input Observation Pair (T1 & T2)',
-      panelSubtitle: 'Upload before and after images of the same geographic footprint.',
+      badge: 'Before & After Change',
+      title: 'Spot Changes Over Time',
+      subtitle: 'Compare two satellite images of the same area taken on different dates.',
+      panelTitle: 'Upload Both Images',
+      panelSubtitle: 'Upload the "before" image on the left and the "after" image on the right.',
       presets: [
-        { label: 'Flood Inundation', q: 'What hydrologic or flood changes occurred between T1 and T2?' },
-        { label: 'Urban Expansion', q: 'Has the built-up area increased, decreased, or remained unchanged?' },
-        { label: 'Vegetation Shift', q: 'What vegetation and canopy changes are observable between dates?' },
-        { label: 'Overall Difference', q: 'What changed between these two dates and where did change occur?' }
+        { label: 'Flood Damage', q: 'What flood or water changes happened between these two dates?' },
+        { label: 'New Construction', q: 'Did the built-up city area grow or change between these dates?' },
+        { label: 'Forest & Trees', q: 'What changes happened to the trees, plants, or greenery?' },
+        { label: 'All Changes', q: 'What changed between these two pictures and where did it happen?' }
       ]
     },
     optical_sar_fusion: {
-      badge: 'Optical + SAR Multimodal Fusion',
-      title: 'Multi-Sensor Complementary Reasoning',
-      subtitle: 'Fuse Sentinel-2 (optical reflectance) with Sentinel-1 (polarimetric radar) to penetrate cloud cover.',
-      panelTitle: 'Input Multimodal Pair',
-      panelSubtitle: 'Upload co-registered Optical MSI and SAR radar imagery.',
+      badge: 'See Through Clouds',
+      title: 'Combine Normal Photos with Radar',
+      subtitle: 'Use radar to see ground details clearly even when thick clouds block normal cameras.',
+      panelTitle: 'Upload Camera & Radar Images',
+      panelSubtitle: 'Upload the cloudy optical picture on the left and the radar image on the right.',
       presets: [
-        { label: 'All-Weather Built-up', q: 'Use optical and SAR images together to identify built-up areas through clouds.' },
-        { label: 'Water Consensus', q: 'Combine optical reflectance and SAR specular backscatter to map water bodies.' },
-        { label: 'Crop Volume', q: 'Fuse optical greenness with SAR volumetric roughness to profile crops.' },
-        { label: 'Multimodal Summary', q: 'Extract complementary information from this optical and SAR pair.' }
+        { label: 'Find Buildings in Clouds', q: 'Use both images together to find buildings through the clouds.' },
+        { label: 'Map Water', q: 'Combine color and radar data to accurately map water bodies.' },
+        { label: 'Check Farm Soil', q: 'Use optical color and radar roughness to inspect farm fields.' },
+        { label: 'Full Summary', q: 'Give a complete summary using both the optical photo and radar data.' }
       ]
     }
   };
@@ -334,30 +334,27 @@ document.addEventListener('DOMContentLoaded', () => {
     panelTitle.textContent = profile.panelTitle;
     panelSubtitle.textContent = profile.panelSubtitle;
 
-    const labelPrimary = document.getElementById('labelPrimaryImage');
-    const dropTextPrimary = document.getElementById('dropTextPrimary');
-
     if (currentMode === 'bitemporal_change') {
       secondaryGroup.classList.remove('hidden');
-      labelPrimary.textContent = 'Primary Scene (T1 — Pre-Change / Baseline)';
-      dropTextPrimary.textContent = 'Click or drag & drop Date T1 Image';
-      document.getElementById('labelSecondaryImage').textContent = 'Secondary Scene (T2 — Post-Change)';
-      document.getElementById('dropTextSecondary').textContent = 'Click or drag & drop Date T2 Image';
+      labelPrimary.textContent = 'First Image (Before Date)';
+      dropTextPrimary.textContent = 'Click or drop the Before image here';
+      document.getElementById('labelSecondaryImage').textContent = 'Second Image (After Date)';
+      document.getElementById('dropTextSecondary').textContent = 'Click or drop the After image here';
     } else if (currentMode === 'optical_sar_fusion') {
       secondaryGroup.classList.remove('hidden');
-      labelPrimary.textContent = 'Optical / Multispectral Scene (Sentinel-2 / Cartosat)';
-      dropTextPrimary.textContent = 'Click or drag & drop Optical Image';
-      document.getElementById('labelSecondaryImage').textContent = 'SAR Radar Scene (Sentinel-1 / RISAT)';
-      document.getElementById('dropTextSecondary').textContent = 'Click or drag & drop SAR Backscatter Image';
+      labelPrimary.textContent = 'Cloudy Camera Image (Optical)';
+      dropTextPrimary.textContent = 'Click or drop the Optical image here';
+      document.getElementById('labelSecondaryImage').textContent = 'Radar Image (SAR)';
+      document.getElementById('dropTextSecondary').textContent = 'Click or drop the Radar image here';
     } else {
       secondaryGroup.classList.add('hidden');
-      labelPrimary.textContent = 'Primary Satellite Scene (GeoTIFF, TIFF, PNG, JPEG)';
-      dropTextPrimary.textContent = 'Click or drag & drop satellite image';
+      labelPrimary.textContent = 'Satellite Image (GeoTIFF, PNG, JPEG)';
+      dropTextPrimary.textContent = 'Click or drop your satellite image here';
     }
 
     // Populate Presets
     const presets = profile.presets || [];
-    quickQuestions.innerHTML = '<span class="quick-title">Presets:</span>' + presets.map(p => `
+    quickQuestions.innerHTML = '<span class="quick-title">Quick Examples:</span>' + presets.map(p => `
       <button type="button" class="chip" data-q="${escapeHtml(p.q)}">${escapeHtml(p.label)}</button>
     `).join('');
 

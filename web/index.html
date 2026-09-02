@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SatQuery.ai — Agentic Remote Sensing Multimodal Assistant</title>
+  <title>SatQuery.ai — Simple AI Assistant for Satellite Imagery</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -23,60 +23,60 @@
           <span class="logo-mark">🛰️</span>
           SatQuery<span>.ai</span>
         </a>
-        <div class="system-status" id="systemStatus" title="VLM Model Status">
+        <div class="system-status" id="systemStatus" title="Model Status">
           <span class="status-dot"></span>
-          <span id="modelBadge">Loading Model...</span>
+          <span id="modelBadge">Ready</span>
         </div>
       </div>
       <nav id="mainNav">
         <a href="/overview" class="nav-link active" data-route="overview">Overview</a>
-        <a href="/vqa" class="nav-link" data-route="vqa">Single VQA</a>
-        <a href="/grounding" class="nav-link" data-route="grounding">Grounding</a>
-        <a href="/change" class="nav-link" data-route="change">Bi-Temporal</a>
-        <a href="/fusion" class="nav-link" data-route="fusion">Optical + SAR</a>
-        <a href="/provenance" class="nav-link" data-route="provenance">Audit Log</a>
+        <a href="/vqa" class="nav-link" data-route="vqa">Ask Questions</a>
+        <a href="/grounding" class="nav-link" data-route="grounding">Find Objects</a>
+        <a href="/change" class="nav-link" data-route="change">Before &amp; After</a>
+        <a href="/fusion" class="nav-link" data-route="fusion">See Through Clouds</a>
+        <a href="/provenance" class="nav-link" data-route="provenance">History Log</a>
       </nav>
-      <a class="cta nav-link" href="/vqa" data-route="vqa">Launch Studio →</a>
+      <a class="cta nav-link" href="/vqa" data-route="vqa">Try It Now →</a>
     </header>
 
     <!-- ====================================================================
-         VIEW 1: MISSION OVERVIEW & BENCHMARKS (/overview or /)
+         VIEW 1: MISSION OVERVIEW (/overview or /)
          ==================================================================== -->
     <div id="viewOverview" class="app-view">
       <!-- Hero Section -->
       <main class="hero">
         <div class="eyebrow">
           <span class="dot"></span>
-          Agentic vision-language assistant for Earth observation • SIH26167
+          AI Assistant for Satellite Imagery • SIH26167
         </div>
-        <h1>Ask your imagery anything.<br>Get <em>geospatial answers</em> back in seconds.</h1>
-        <p class="lede">SatQuery reads GeoTIFFs, multitemporal scenes, and radar drops the way an expert analyst would — orchestrating specialist remote-sensing models with observable provenance.</p>
+        <h1>Ask your satellite images anything.<br>Get <em>clear answers</em> in seconds.</h1>
+        <p class="lede">SatQuery understands raw satellite files, spots changes over time, and finds specific objects on the ground — no complicated GIS tools needed.</p>
 
         <div class="hero-actions">
-          <a href="/vqa" class="cta-large nav-link" data-route="vqa">Open VQA Studio ↓</a>
-          <a href="/grounding" class="btn-ghost nav-link" data-route="grounding">Visual Grounding →</a>
-          <a href="/change" class="btn-ghost nav-link" data-route="change">Bi-Temporal Change →</a>
-          <a href="/fusion" class="btn-ghost nav-link" data-route="fusion">Optical + SAR →</a>
+          <a href="/vqa" class="cta-large nav-link" data-route="vqa">Ask a Question ↓</a>
+          <a href="/grounding" class="btn-ghost nav-link" data-route="grounding">Find Objects →</a>
+          <a href="/change" class="btn-ghost nav-link" data-route="change">Before &amp; After →</a>
+          <a href="/fusion" class="btn-ghost nav-link" data-route="fusion">See Through Clouds →</a>
         </div>
 
         <div class="stats">
           <div class="stat">
             <span class="bracket tl"></span><span class="bracket br"></span>
             <div class="idx">01</div>
-            <div class="num">4 Modalities</div>
-            <div class="lbl">VQA, Visual Grounding, Bi-temporal CDVQA, and Optical-SAR Fusion</div>
+            <div class="num">4 Key Features</div>
+            <div class="lbl">Q&amp;A, Finding Objects, Before/After Changes, and Seeing Through Clouds</div>
           </div>
           <div class="stat">
             <span class="bracket tl"></span><span class="bracket br"></span>
             <div class="idx">02</div>
-            <div class="num">16-bit GeoTIFF</div>
-            <div class="lbl">Automated CRS projection parsing, geotransforms &amp; contrast stretch</div>
+            <div class="num">Any Satellite File</div>
+            <div class="lbl">Reads standard images, GeoTIFFs, and radar files automatically</div>
           </div>
           <div class="stat">
             <span class="bracket tl"></span><span class="bracket br"></span>
             <div class="idx">03</div>
-            <div class="num">100% Traceable</div>
-            <div class="lbl">Auditable provenance execution logs for every decision and query</div>
+            <div class="num">100% Clear Proof</div>
+            <div class="lbl">Shows how it reached every answer with transparent step-by-step logs</div>
           </div>
         </div>
       </main>
@@ -85,15 +85,15 @@
       <section class="panel-section" id="benchmarks">
         <div class="panel">
           <div>
-            <div class="eyebrow small"><span class="dot"></span> Evaluated Benchmarks</div>
-            <h2>Official SIH26167 Datasets</h2>
-            <p>SatQuery AI is designed to run against prescribed open benchmarks and ISRO/SAC Earth observation data products.</p>
+            <div class="eyebrow small"><span class="dot"></span> Real Satellite Data</div>
+            <h2>Tested on Real Satellite Datasets</h2>
+            <p>SatQuery works on open satellite data from ISRO, European Space Agency (Sentinel), and NASA (Landsat).</p>
           </div>
           <div class="mini-stats">
-            <div><div class="n">BigEarthNet.txt</div><div class="l">464K+ Sentinel-1 &amp; Sentinel-2 pairs for multi-sensor grounding</div></div>
-            <div><div class="n">VRSBench</div><div class="l">29K+ scenes with 123K VQA pairs and bounding box annotations</div></div>
-            <div><div class="n">CDVQA / LEVIR-CD</div><div class="l">Bi-temporal change detection and multitemporal question answering</div></div>
-            <div><div class="n">Bhoonidhi / ISRO</div><div class="l">Ready for Cartosat-2S optical and RISAT C-band SAR datasets</div></div>
+            <div><div class="n">Sentinel &amp; Landsat</div><div class="l">Real 16-bit satellite images with true map coordinates</div></div>
+            <div><div class="n">Object Benchmark</div><div class="l">Trained to locate ships, planes, buildings, and water bodies</div></div>
+            <div><div class="n">Disaster &amp; Flood</div><div class="l">Compares images before and after floods or construction</div></div>
+            <div><div class="n">Radar Backscatter</div><div class="l">Penetrates thick clouds using microwave radar passes</div></div>
           </div>
         </div>
       </section>
@@ -102,30 +102,30 @@
       <section class="panel-section" id="pipeline">
         <div class="panel">
           <div>
-            <div class="eyebrow small"><span class="dot"></span> Agentic Architecture</div>
-            <h2>Autonomous Tool Sequencing</h2>
-            <p>From sensor drop to verified conclusion, SatQuery orchestrates raster processing, deep vision embeddings, and strict audit trails.</p>
+            <div class="eyebrow small"><span class="dot"></span> How It Works</div>
+            <h2>Simple 3-Step Process</h2>
+            <p>From your uploaded satellite picture to a clear, verified answer in plain English.</p>
           </div>
           <div class="pipeline-steps">
             <div class="pipe-step">
               <div class="step-num">01</div>
               <div class="step-info">
-                <h4>Geospatial Normalization</h4>
-                <p>In-memory GDAL decoding extracts CRS bounds, radiometric depth, and percentiles for dynamic range compression.</p>
+                <h4>1. Read &amp; Enhance Image</h4>
+                <p>Loads map coordinates, balances contrast, and prepares the image for AI viewing.</p>
               </div>
             </div>
             <div class="pipe-step">
               <div class="step-num">02</div>
               <div class="step-info">
-                <h4>Agentic Intent Routing</h4>
-                <p>Classifies queries into VQA, Grounding, Change Analysis, or Radar Fusion and invokes specialist tools.</p>
+                <h4>2. Understand Your Question</h4>
+                <p>The AI figures out what you need and picks the right tool to inspect the image.</p>
               </div>
             </div>
             <div class="pipe-step">
               <div class="step-num">03</div>
               <div class="step-info">
-                <h4>Provenance Audit Trail</h4>
-                <p>Every inference writes to an append-only JSONL ledger with parameters, model names, and latency records.</p>
+                <h4>3. Show Answer with Visual Proof</h4>
+                <p>Draws glowing boxes on targets, highlights changes, and writes an easy-to-read explanation.</p>
               </div>
             </div>
           </div>
@@ -140,9 +140,9 @@
     <div id="viewWorkspace" class="app-view hidden">
       <section class="section-container" id="console">
         <div class="section-header">
-          <div class="eyebrow small"><span class="dot"></span> <span id="workspaceBadge">Dedicated Studio</span></div>
-          <h2 id="workspaceTitle">Earth Observation Studio</h2>
-          <p id="workspaceSubtitle">Upload satellite imagery, configure queries, and inspect evidence-grounded results.</p>
+          <div class="eyebrow small"><span class="dot"></span> <span id="workspaceBadge">Studio</span></div>
+          <h2 id="workspaceTitle">Satellite Workspace</h2>
+          <p id="workspaceSubtitle">Upload satellite images, ask your question, and get instant answers.</p>
         </div>
 
         <div class="workspace-grid">
@@ -150,17 +150,17 @@
           <div class="card bracket-card">
             <span class="bracket tl"></span><span class="bracket br"></span>
             <div class="card-badge">Step 1</div>
-            <h3 id="panelTitle">Input Satellite Data</h3>
-            <p class="card-sub" id="panelSubtitle">Upload your raw raster or multispectral imagery.</p>
+            <h3 id="panelTitle">Upload Image</h3>
+            <p class="card-sub" id="panelSubtitle">Select your satellite file or sample.</p>
 
             <form id="vqaForm">
               <!-- Primary Image Upload -->
               <div class="form-group">
-                <label for="imageInput" id="labelPrimaryImage">Primary Satellite Scene (GeoTIFF, TIFF, PNG, JPEG)</label>
+                <label for="imageInput" id="labelPrimaryImage">Main Satellite Image (GeoTIFF, PNG, JPEG)</label>
                 <div class="drop-zone" id="dropZone">
                   <div class="drop-icon">🛰️</div>
-                  <p class="drop-text" id="dropTextPrimary">Click or drag &amp; drop primary image</p>
-                  <span class="drop-hint">Supports CRS georeferenced rasters &amp; 16-bit GeoTIFFs</span>
+                  <p class="drop-text" id="dropTextPrimary">Click or drag &amp; drop satellite image</p>
+                  <span class="drop-hint">Supports GeoTIFF, TIFF, PNG, and JPEG</span>
                   <input type="file" id="imageInput" name="image" accept=".tif,.tiff,.png,.jpg,.jpeg" required>
                 </div>
                 <div id="fileInfo" class="file-info hidden">
@@ -172,13 +172,13 @@
                 </div>
               </div>
 
-              <!-- Secondary Image Upload (Visible in Bi-Temporal and Optical+SAR modes) -->
+              <!-- Secondary Image Upload (Visible in Change and Radar modes) -->
               <div class="form-group hidden" id="secondaryGroup">
-                <label for="secondaryImageInput" id="labelSecondaryImage">Secondary Scene (T2 Date or SAR Microwave)</label>
+                <label for="secondaryImageInput" id="labelSecondaryImage">Second Image (After Date or Radar)</label>
                 <div class="drop-zone" id="dropZone2">
                   <div class="drop-icon">📡</div>
-                  <p class="drop-text" id="dropTextSecondary">Click or drag &amp; drop secondary image</p>
-                  <span class="drop-hint">Co-registered spatial footprint recommended</span>
+                  <p class="drop-text" id="dropTextSecondary">Click or drag &amp; drop second image</p>
+                  <span class="drop-hint">Image of the same area for comparison</span>
                   <input type="file" id="secondaryImageInput" name="secondary_image" accept=".tif,.tiff,.png,.jpg,.jpeg">
                 </div>
                 <div id="fileInfo2" class="file-info hidden">
@@ -191,25 +191,25 @@
               </div>
 
               <div class="form-group">
-                <label for="questionInput">Natural Language Query / Prompt</label>
+                <label for="questionInput">Your Question in Plain English</label>
                 <div class="input-wrapper">
                   <input 
                     type="text" 
                     id="questionInput" 
                     name="question" 
-                    placeholder="e.g. What land cover types are visible in this scene?" 
+                    placeholder="e.g. What is in this image?" 
                     required 
                     autocomplete="off"
                   >
                 </div>
                 <div class="quick-questions" id="quickQuestions">
-                  <span class="quick-title">Presets:</span>
+                  <span class="quick-title">Quick Examples:</span>
                   <!-- Populated dynamically per route -->
                 </div>
               </div>
 
               <button type="submit" id="btnAnalyse" class="btn-primary">
-                <span class="btn-text">Execute Analysis</span>
+                <span class="btn-text">Get Answer</span>
                 <span class="spinner hidden" id="spinner"></span>
               </button>
             </form>
@@ -217,17 +217,17 @@
             <div id="alertBox" class="alert-box hidden"></div>
           </div>
 
-          <!-- Right Panel: Image Preview & Geospatial Metadata -->
+          <!-- Right Panel: Image Preview & Details -->
           <div class="card bracket-card">
             <span class="bracket tl"></span><span class="bracket br"></span>
             <div class="card-badge">Step 2</div>
-            <h3>Image Preview &amp; Overlays</h3>
-            <p class="card-sub">Server-side normalized raster with interactive grounding &amp; difference layers.</p>
+            <h3>Image Preview &amp; Highlights</h3>
+            <p class="card-sub">See your image preview with highlighted boxes and change maps.</p>
 
             <div class="image-preview-wrapper" id="previewWrapper">
               <div class="preview-placeholder" id="previewPlaceholder">
                 <div class="placeholder-icon">🔭</div>
-                <span>Upload or select a scene to preview raster and extract coordinates</span>
+                <span>Upload an image to see the preview here</span>
               </div>
               <div class="preview-canvas-container" id="canvasContainer">
                 <img id="imagePreview" class="image-preview hidden" alt="Satellite Preview">
@@ -236,39 +236,39 @@
               </div>
             </div>
 
-            <!-- Controls for layers if available -->
+            <!-- Layer toggles -->
             <div class="layer-controls hidden" id="layerControls">
               <label class="layer-toggle">
                 <input type="checkbox" id="toggleGrounding" checked>
-                <span>Show Grounding Boxes</span>
+                <span>Show Highlight Boxes</span>
               </label>
               <label class="layer-toggle hidden" id="toggleChangeLayer">
                 <input type="checkbox" id="toggleChange" checked>
-                <span>Show Change Heatmap</span>
+                <span>Show Change Map</span>
               </label>
             </div>
 
-            <!-- Geospatial Metadata Drawer -->
+            <!-- Image Details Drawer -->
             <div class="metadata-container">
               <div class="meta-header">
-                <span class="meta-title">Geospatial Telemetry</span>
-                <span class="meta-badge">GDAL / Rasterio</span>
+                <span class="meta-title">Image Details</span>
+                <span class="meta-badge">Map Coordinates</span>
               </div>
               <div class="meta-grid" id="metadataGrid">
                 <div class="meta-item">
-                  <span class="meta-lbl">CRS</span>
+                  <span class="meta-lbl">Map System (CRS)</span>
                   <span class="meta-val" id="metaCrs">—</span>
                 </div>
                 <div class="meta-item">
-                  <span class="meta-lbl">Shape [H, W]</span>
+                  <span class="meta-lbl">Dimensions [H, W]</span>
                   <span class="meta-val" id="metaShape">—</span>
                 </div>
                 <div class="meta-item">
-                  <span class="meta-lbl">Bands</span>
+                  <span class="meta-lbl">Color Layers</span>
                   <span class="meta-val" id="metaBands">—</span>
                 </div>
                 <div class="meta-item">
-                  <span class="meta-lbl">Driver</span>
+                  <span class="meta-lbl">File Type</span>
                   <span class="meta-val" id="metaDriver">—</span>
                 </div>
               </div>
@@ -276,26 +276,26 @@
           </div>
         </div>
 
-        <!-- Output Panel: Results & Agentic Trace -->
+        <!-- Output Panel: Results & Explanation -->
         <div class="card bracket-card results-card" id="resultsSection">
           <span class="bracket tl"></span><span class="bracket br"></span>
           <div class="results-header-bar">
             <div class="card-badge">Step 3</div>
             <div class="result-tags">
-              <span class="meta-tag">Task: <strong id="resTask">VQA</strong></span>
+              <span class="meta-tag">Feature: <strong id="resTask">Q&amp;A</strong></span>
               <span class="meta-tag">Tool: <strong id="resTool">—</strong></span>
               <span class="meta-tag">Model: <strong id="resModel">—</strong></span>
-              <span class="meta-tag">Latency: <strong id="resLatency">—</strong></span>
+              <span class="meta-tag">Speed: <strong id="resLatency">—</strong></span>
               <span class="meta-tag">Confidence: <strong id="resConfidence">—</strong></span>
             </div>
           </div>
           <div class="result-content">
-            <h4>Evidence &amp; Conclusion:</h4>
-            <p id="resAnswer" class="answer-text">Awaiting query execution. Upload imagery and click "Execute Analysis".</p>
+            <h4>Answer:</h4>
+            <p id="resAnswer" class="answer-text">Upload your image above and click "Get Answer".</p>
 
             <!-- Agent Trace Timeline -->
             <div class="agent-trace-container hidden" id="agentTraceContainer">
-              <div class="trace-title">Observable Execution Trace:</div>
+              <div class="trace-title">How the AI solved this step-by-step:</div>
               <div class="trace-steps" id="traceSteps"></div>
             </div>
           </div>
@@ -305,14 +305,14 @@
 
 
     <!-- ====================================================================
-         VIEW 3: AUDIT PROVENANCE EXPLORER (/provenance)
+         VIEW 3: HISTORY & AUDIT LOG (/provenance)
          ==================================================================== -->
     <div id="viewProvenance" class="app-view hidden">
       <section class="section-container" id="provenanceSection">
         <div class="section-header">
-          <div class="eyebrow small"><span class="dot"></span> Audit Trail &amp; Governance</div>
-          <h2>Execution Provenance Explorer</h2>
-          <p>Complete observable ledger of all model selections, parameters, and inference outputs.</p>
+          <div class="eyebrow small"><span class="dot"></span> Full History</div>
+          <h2>Activity &amp; History Log</h2>
+          <p>Every query you run is saved here with its question, answer, speed, and time.</p>
         </div>
 
         <div class="card bracket-card prov-fullscreen-card">
@@ -320,15 +320,15 @@
           <div class="prov-header">
             <div class="prov-title-wrap">
               <span class="prov-dot"></span>
-              <span class="prov-title">System Execution Ledger (outputs/executions.jsonl)</span>
+              <span class="prov-title">Recent Activity Log</span>
             </div>
             <div class="prov-actions">
-              <button type="button" id="btnExportJson" class="btn-text-link">⬇ Export JSON</button>
-              <button type="button" id="btnRefreshProv" class="btn-text-link">↻ Refresh Log</button>
+              <button type="button" id="btnExportJson" class="btn-text-link">⬇ Save as JSON</button>
+              <button type="button" id="btnRefreshProv" class="btn-text-link">↻ Refresh</button>
             </div>
           </div>
           <div class="prov-feed-fullscreen" id="provenanceFeedFull">
-            <div class="prov-empty">No executions recorded yet.</div>
+            <div class="prov-empty">No queries run yet. Pick a feature above to get started!</div>
           </div>
         </div>
       </section>
@@ -339,11 +339,11 @@
       <div class="footer-content">
         <div class="footer-brand">
           <div class="logo">SatQuery<span>.ai</span></div>
-          <p>Agentic vision-language assistant for Earth observation • Team Saverra (IIT Madras BS)</p>
+          <p>Easy AI assistant for satellite imagery • Team Saverra (IIT Madras BS)</p>
         </div>
         <div class="footer-meta">
-          <span>SIH26167 • Prototype 1</span>
-          <span>FastAPI • PyTorch • GDAL / Rasterio • Qwen2-VL</span>
+          <span>SIH26167 • Space Technology</span>
+          <span>FastAPI • PyTorch • GDAL • Qwen2-VL</span>
         </div>
       </div>
     </footer>
