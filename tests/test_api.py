@@ -36,7 +36,8 @@ def test_api_vqa_valid_upload(client, sample_png_image):
     data = response.json()
     assert "answer" in data
     assert data["model"] == "mock-vlm-v1"
-    assert data["confidence"] is None
+    assert isinstance(data["confidence"], float)
+    assert 0.0 <= data["confidence"] <= 1.0
     assert "metadata" in data
     assert data["metadata"]["original_filename"] == "test_patch.png"
 
@@ -114,5 +115,38 @@ def test_api_agent_analyze_bitemporal(client, sample_png_image):
     assert data["task"] == "bitemporal_change"
     assert data["change_map_url"] is not None
     assert "execution_trace" in data
+
+
+def test_api_bhoonidhi_products(client):
+    response = client.get("/bhoonidhi/products")
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 4
+    assert any("Cartosat" in p["satellite"] for p in data)
+
+
+def test_api_bhoonidhi_load(client):
+    response = client.post("/bhoonidhi/load", data={"product_id": "ISRO_CARTOSAT2S_BLR_20240215"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["product_id"] == "ISRO_CARTOSAT2S_BLR_20240215"
+    assert "preview_url" in data
+
+
+def test_api_indices_compute(client, sample_png_image):
+    with open(sample_png_image, "rb") as f:
+        response = client.post(
+            "/indices/compute",
+            files={"image": ("test_indices.png", f, "image/png")},
+            data={"indices": "ndvi,ndwi,nbr"},
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert "indices" in data
+    assert "ndvi" in data["indices"]
+    assert "summary" in data
+
 
 

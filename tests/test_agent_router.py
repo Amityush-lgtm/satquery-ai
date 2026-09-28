@@ -48,3 +48,17 @@ def test_router_execute_bitemporal(orchestrator, sample_png_image):
     assert res.task == "bitemporal_change"
     assert res.change_map_url is not None
     assert res.execution_trace["tool_used"] == "BiTemporalChangeTool"
+
+
+def test_router_classify_spectral_indices(orchestrator):
+    task = orchestrator.classify_task("Calculate NDVI and vegetation health index")
+    assert task == AgentTaskType.SPECTRAL_INDICES
+
+
+def test_router_execute_spectral_indices(orchestrator, sample_png_image):
+    img = Image.open(sample_png_image)
+    res = orchestrator.execute("Calculate NDVI index", primary_image=img)
+    assert res.task == "spectral_indices"
+    assert res.change_map_url is not None
+    assert res.execution_trace["tool_used"] == "SpectralBiophysicalEngine"
+    assert "NDVI" in res.answer

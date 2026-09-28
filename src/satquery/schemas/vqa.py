@@ -8,6 +8,7 @@ class AgentTaskType(str, Enum):
     GROUNDING = "grounding"
     BITEMPORAL_CHANGE = "bitemporal_change"
     OPTICAL_SAR_FUSION = "optical_sar_fusion"
+    SPECTRAL_INDICES = "spectral_indices"
 
 
 class BoundingBox(BaseModel):

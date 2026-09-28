@@ -17,6 +17,9 @@ models/
 *.pt
 *.ckpt
 *.safetensors
+*.tif
+*.tiff
+*.zip
 
 # Outputs / temporary files
 outputs/*

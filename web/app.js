@@ -250,6 +250,19 @@ document.addEventListener('DOMContentLoaded', () => {
         { label: 'Check Farm Soil', q: 'Use optical color and radar roughness to inspect farm fields.' },
         { label: 'Full Summary', q: 'Give a complete summary using both the optical photo and radar data.' }
       ]
+    },
+    indices: {
+      badge: 'Crop & Land Health (NDVI)',
+      title: 'Calculate Vegetation, Water & Soil Indices',
+      subtitle: 'Generate NDVI, NDWI, and NBR biophysical heatmaps to evaluate crop health and surface water.',
+      panelTitle: 'Choose Multispectral Satellite Image',
+      panelSubtitle: 'Upload a satellite image or select an authentic ISRO scene.',
+      presets: [
+        { label: 'NDVI Crop Health', q: 'Calculate NDVI vegetation index and show photosynthetic crop vigor.' },
+        { label: 'NDWI Water Extent', q: 'Compute NDWI index to delineate water bodies and lake surfaces.' },
+        { label: 'NBR Burn Severity', q: 'Evaluate NBR burn ratio and soil moisture aridity index.' },
+        { label: 'Full Biophysical Report', q: 'Provide a complete spectral index breakdown of this parcel.' }
+      ]
     }
   };
 
@@ -287,13 +300,14 @@ document.addEventListener('DOMContentLoaded', () => {
       loadProvenanceFull();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Workspace Studios: vqa, grounding, change, fusion
+      // Workspace Studios: vqa, grounding, change, fusion, indices
       viewWorkspace.classList.remove('hidden');
 
       if (cleanRoute === 'vqa') currentMode = 'vqa';
       else if (cleanRoute === 'grounding') currentMode = 'grounding';
       else if (cleanRoute === 'change' || cleanRoute === 'bitemporal_change') currentMode = 'bitemporal_change';
       else if (cleanRoute === 'fusion' || cleanRoute === 'optical_sar_fusion') currentMode = 'optical_sar_fusion';
+      else if (cleanRoute === 'indices' || cleanRoute === 'spectral_indices') currentMode = 'indices';
       else currentMode = 'vqa';
 
       updateModeUI();
@@ -799,10 +813,312 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ==========================================================================
+  // ISRO Bhoonidhi Dataset Modal Handlers
+  // ==========================================================================
+  const bhoonidhiModal = document.getElementById('bhoonidhiModal');
+  const btnOpenBhoonidhi = document.getElementById('btnOpenBhoonidhi');
+  const btnCloseBhoonidhi = document.getElementById('btnCloseBhoonidhi');
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const bhoonidhiGrid = document.getElementById('bhoonidhiGrid');
+
+  async function openBhoonidhiModal() {
+    if (!bhoonidhiModal || !bhoonidhiGrid) return;
+    bhoonidhiModal.classList.remove('hidden');
+    bhoonidhiGrid.innerHTML = '<div class="loading-scenes">Fetching ISRO Bhoonidhi catalog...</div>';
+
+    try {
+      const res = await fetch('/bhoonidhi/products');
+      const products = await res.json();
+      
+      if (!products || products.length === 0) {
+        bhoonidhiGrid.innerHTML = '<div class="loading-scenes">No Bhoonidhi scenes available.</div>';
+        return;
+      }
+
+      bhoonidhiGrid.innerHTML = products.map(p => `
+        <div class="bhoonidhi-card" data-id="${p.product_id}">
+          <div class="bhoonidhi-card-header">
+            <span class="satellite-tag">${escapeHtml(p.satellite)}</span>
+            <span class="sensor-tag">${escapeHtml(p.sensor)}</span>
+          </div>
+          <h4>${escapeHtml(p.location_name)}</h4>
+          <div class="bhoonidhi-meta-row">
+            <div><strong>Resolution:</strong> ${p.resolution_m}m</div>
+            <div><strong>Acquired:</strong> ${p.acquisition_date}</div>
+          </div>
+          <div class="bhoonidhi-bands">
+            ${p.bands.map(b => `<span class="band-pill">${escapeHtml(b)}</span>`).join('')}
+          </div>
+          <button type="button" class="btn-select-scene">Load Into Studio →</button>
+        </div>
+      `).join('');
+
+      // Attach click listeners to cards
+      document.querySelectorAll('.bhoonidhi-card').forEach(card => {
+        card.querySelector('.btn-select-scene').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const productId = card.dataset.id;
+          await loadSelectedBhoonidhiScene(productId);
+        });
+      });
+
+    } catch (e) {
+      bhoonidhiGrid.innerHTML = `<div class="loading-scenes error">Failed loading Bhoonidhi catalog: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  async function loadSelectedBhoonidhiScene(productId) {
+    try {
+      const formData = new FormData();
+      formData.append('product_id', productId);
+
+      const res = await fetch('/bhoonidhi/load', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error(`Failed to load product ${productId}`);
+      const data = await res.json();
+
+      // Update Preview & Metadata
+      imagePreview.src = data.preview_url;
+      imagePreview.classList.remove('hidden');
+      previewPlaceholder.classList.add('hidden');
+
+      fileName.textContent = `${data.satellite} - ${data.location_name}`;
+      fileInfo.classList.remove('hidden');
+
+      // Convert Base64 data URL to a File object for Form submission
+      const blobRes = await fetch(data.preview_url);
+      const blob = await blobRes.blob();
+      const file = new File([blob], `${productId}.tif`, { type: 'image/tiff' });
+      
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      imageInput.files = dt.files;
+
+      if (data.metadata) {
+        metaCrs.textContent = data.metadata.crs || 'EPSG:32643 (UTM 43N / WGS84)';
+        metaShape.textContent = data.metadata.shape ? `[${data.metadata.shape.join(', ')}]` : '[3, 512, 512]';
+        metaBands.textContent = data.metadata.count || '4 (Multispectral)';
+        metaDriver.textContent = 'GTiff (Bhoonidhi L1C)';
+      }
+
+      bhoonidhiModal.classList.add('hidden');
+      showAlert(`Loaded authentic ISRO ${data.satellite} scene: ${data.location_name}`, false);
+
+    } catch (err) {
+      alert(`Error loading scene: ${err.message}`);
+    }
+  }
+
+  // ==========================================================================
+  // Leaflet Geospatial Map Engines (Overview & Studio Footprints)
+  // ==========================================================================
+  let overviewMapInstance = null;
+  let studioMapInstance = null;
+  let studioMapLayer = null;
+
+  function initOverviewMap() {
+    const mapEl = document.getElementById('overviewMap');
+    if (!mapEl || typeof L === 'undefined' || overviewMapInstance) return;
+
+    overviewMapInstance = L.map('overviewMap', {
+      center: [21.5, 78.5],
+      zoom: 5,
+      zoomControl: true,
+      attributionControl: false
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 18,
+      subdomains: 'abcd',
+    }).addTo(overviewMapInstance);
+
+    const isroScenes = [
+      {
+        id: 'ISRO_CARTOSAT2S_BLR_20240215',
+        lat: 13.05,
+        lng: 77.64,
+        satellite: 'Cartosat-2S',
+        sensor: 'PAN + MSI (0.65m)',
+        name: 'Bengaluru Tech Corridor & Kempegowda Airport, Karnataka',
+        color: '#4f8cff'
+      },
+      {
+        id: 'ISRO_RESOURCESAT2A_PUN_20240310',
+        lat: 30.93,
+        lng: 75.88,
+        satellite: 'Resourcesat-2A',
+        sensor: 'LISS-IV (5.8m)',
+        name: 'Ludhiana Agricultural Belt & Canal Network, Punjab',
+        color: '#5eead4'
+      },
+      {
+        id: 'ISRO_RISAT1A_MUM_20240722',
+        lat: 19.01,
+        lng: 72.85,
+        satellite: 'RISAT-1A (EOS-04)',
+        sensor: 'C-Band SAR Radar (3.0m)',
+        name: 'Mumbai Harbor & Western Ghats, Maharashtra',
+        color: '#ff9a56'
+      },
+      {
+        id: 'ISRO_OCEANSAT3_ODISHA_20240502',
+        lat: 19.68,
+        lng: 85.32,
+        satellite: 'Oceansat-3 (EOS-06)',
+        sensor: 'OCM-3 (360m)',
+        name: 'Chilika Lake & Bay of Bengal Coast, Odisha',
+        color: '#a78bfa'
+      }
+    ];
+
+    isroScenes.forEach(scene => {
+      const circle = L.circleMarker([scene.lat, scene.lng], {
+        radius: 8,
+        fillColor: scene.color,
+        color: '#ffffff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.85
+      }).addTo(overviewMapInstance);
+
+      circle.bindPopup(`
+        <div style="font-family: sans-serif; min-width: 200px; color: #111;">
+          <div style="font-size: 11px; font-weight: 700; color: #e8622c; text-transform: uppercase;">🇮🇳 ISRO ${escapeHtml(scene.satellite)}</div>
+          <div style="font-size: 13px; font-weight: 600; margin: 4px 0;">${escapeHtml(scene.name)}</div>
+          <div style="font-size: 11px; color: #555; margin-bottom: 8px;">Sensor: <strong>${escapeHtml(scene.sensor)}</strong></div>
+          <button onclick="window.loadBhoonidhiFromMap('${scene.id}')" style="background: #e8622c; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; width: 100%;">
+            Load into Studio →
+          </button>
+        </div>
+      `);
+    });
+  }
+
+  window.loadBhoonidhiFromMap = async function(productId) {
+    navigateToRoute('vqa', true);
+    await loadSelectedBhoonidhiScene(productId);
+  };
+
+  const btnExploreBhoonidhi = document.getElementById('btnExploreBhoonidhi');
+  if (btnExploreBhoonidhi) {
+    btnExploreBhoonidhi.addEventListener('click', openBhoonidhiModal);
+  }
+
+  // Studio View Tab Switcher (Image vs Map)
+  const btnTabImage = document.getElementById('btnTabImage');
+  const btnTabMap = document.getElementById('btnTabMap');
+  const canvasContainer = document.getElementById('canvasContainer');
+  const studioMap = document.getElementById('studioMap');
+
+  if (btnTabImage && btnTabMap) {
+    btnTabImage.addEventListener('click', () => {
+      btnTabImage.classList.add('active');
+      btnTabMap.classList.remove('active');
+      canvasContainer.classList.remove('hidden');
+      studioMap.classList.add('hidden');
+    });
+
+    btnTabMap.addEventListener('click', () => {
+      btnTabMap.classList.add('active');
+      btnTabImage.classList.remove('active');
+      canvasContainer.classList.add('hidden');
+      studioMap.classList.remove('hidden');
+
+      if (!studioMapInstance && typeof L !== 'undefined') {
+        studioMapInstance = L.map('studioMap', {
+          center: [20.59, 78.96],
+          zoom: 5,
+          attributionControl: false
+        });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(studioMapInstance);
+      }
+      if (studioMapInstance) {
+        setTimeout(() => studioMapInstance.invalidateSize(), 150);
+      }
+    });
+  }
+
+  // PDF Report Export Handler
+  const btnExportPdf = document.getElementById('btnExportPdf');
+  if (btnExportPdf) {
+    btnExportPdf.addEventListener('click', () => {
+      const task = resTask.textContent;
+      const model = resModel.textContent;
+      const confidence = resConfidence.textContent;
+      const answer = resAnswer.textContent;
+      const query = questionInput.value || 'General Scene Analysis';
+      const filename = fileName.textContent || 'Satellite Raster';
+      const crs = metaCrs.textContent || 'WGS84 / UTM';
+      const date = new Date().toLocaleString();
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to export PDF report.');
+        return;
+      }
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>SatQuery AI — Geospatial Intelligence Report</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #111; line-height: 1.6; }
+            .header { border-bottom: 2px solid #e8622c; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+            .logo { font-size: 24px; font-weight: 700; color: #111; }
+            .logo span { color: #e8622c; }
+            .badge { background: #fdf2e9; color: #e8622c; border: 1px solid #e8622c; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+            .section-title { font-size: 16px; font-weight: 700; margin: 20px 0 8px; color: #222; text-transform: uppercase; letter-spacing: 0.05em; }
+            .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+            .meta-table td, .meta-table th { border: 1px solid #e2e8f0; padding: 8px 12px; font-size: 13px; }
+            .meta-table th { background: #f8fafc; text-align: left; font-weight: 600; color: #475569; width: 30%; }
+            .answer-box { background: #f8fafc; border-left: 4px solid #e8622c; padding: 16px; border-radius: 4px; margin: 16px 0; font-size: 14px; }
+            .footer { border-top: 1px solid #e2e8f0; margin-top: 40px; padding-top: 12px; font-size: 11px; color: #64748b; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">SatQuery<span>.ai</span></div>
+            <div class="badge">SIH26167 Intelligence Report</div>
+          </div>
+          <div class="section-title">Query &amp; Execution Summary</div>
+          <table class="meta-table">
+            <tr><th>Report Generated</th><td>${date}</td></tr>
+            <tr><th>Primary Dataset</th><td>${escapeHtml(filename)}</td></tr>
+            <tr><th>Coordinate System</th><td>${escapeHtml(crs)}</td></tr>
+            <tr><th>Specialist Route</th><td>${escapeHtml(task)}</td></tr>
+            <tr><th>Execution Model</th><td>${escapeHtml(model)} (RS LoRA Adapted)</td></tr>
+            <tr><th>Confidence Calibration</th><td><strong>${escapeHtml(confidence)}</strong></td></tr>
+            <tr><th>User Query</th><td><em>"${escapeHtml(query)}"</em></td></tr>
+          </table>
+
+          <div class="section-title">Evidence-Grounded Intelligence Findings</div>
+          <div class="answer-box">
+            ${escapeHtml(answer)}
+          </div>
+
+          <div class="footer">
+            Generated autonomously by SatQuery AI Multimodal Remote-Sensing Orchestrator · Team Saverra · IIT Madras BS
+          </div>
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    });
+  }
+
   // Initial Route Hydration from URL
   const initialPath = window.location.pathname.replace(/^\//, '') || 'overview';
   navigateToRoute(initialPath, false);
 
   checkHealth();
   loadProvenance();
+  setTimeout(initOverviewMap, 250);
 });

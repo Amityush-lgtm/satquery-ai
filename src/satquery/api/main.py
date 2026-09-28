@@ -253,7 +253,66 @@ async def get_recent_executions(limit: int = 10) -> List[Dict[str, Any]]:
     return records
 
 
+@app.get("/bhoonidhi/products")
+async def list_bhoonidhi_products(satellite: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Lists available ISRO Bhoonidhi satellite data products."""
+    from satquery.geo.bhoonidhi import BhoonidhiConnector
+    connector = BhoonidhiConnector()
+    return connector.list_products(satellite=satellite)
+
+
+@app.post("/bhoonidhi/load")
+async def load_bhoonidhi_product(product_id: str = Form(...)) -> Dict[str, Any]:
+    """Loads a specific ISRO Bhoonidhi product into standard preview format."""
+    from satquery.geo.bhoonidhi import BhoonidhiConnector
+    connector = BhoonidhiConnector()
+    try:
+        geo_img = connector.load_scene(product_id)
+        product = connector.get_product(product_id)
+        preview_data_url = pil_to_base64_png(geo_img.pil_image)
+        return {
+            "status": "success",
+            "product_id": product_id,
+            "satellite": product.satellite if product else "ISRO",
+            "location_name": product.location_name if product else "",
+            "preview_url": preview_data_url,
+            "metadata": geo_img.metadata,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@app.post("/indices/compute")
+async def compute_indices_endpoint(
+    image: UploadFile = File(..., description="Satellite image file (GeoTIFF, PNG, JPEG)"),
+    indices: Optional[str] = Form("ndvi,ndwi,nbr"),
+) -> Dict[str, Any]:
+    """Computes spectral indices (NDVI, NDWI, NBR) from uploaded satellite raster."""
+    from satquery.analysis.spectral_indices import analyze_spectral_indices
+    suffix = Path(image.filename).suffix if image.filename else ".tif"
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=TEMP_UPLOAD_DIR)
+    temp_path = Path(temp.name)
+
+    try:
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+        selected_list = [s.strip() for s in (indices or "ndvi,ndwi,nbr").split(",") if s.strip()]
+        res = analyze_spectral_indices(temp_path, output_dir="outputs/indices", selected_indices=selected_list)
+        return res
+    finally:
+        if temp_path.exists():
+            try:
+                temp_path.unlink()
+            except Exception:
+                pass
+
+
 # Mount static files and multi-route page handlers for Web UI
+outputs_dir = Path("outputs")
+if outputs_dir.exists():
+    app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+
 web_dir = Path("web")
 if web_dir.exists():
     app.mount("/static", StaticFiles(directory="web"), name="static")
@@ -264,6 +323,7 @@ if web_dir.exists():
     @app.get("/grounding")
     @app.get("/change")
     @app.get("/fusion")
+    @app.get("/indices")
     @app.get("/provenance")
     async def serve_app_view():
         """Serves the main application with client-side route hydration."""

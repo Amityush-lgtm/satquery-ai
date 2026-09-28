@@ -23,7 +23,8 @@ def test_mock_model_generation(sample_png_image):
     assert "answer" in result
     assert "model" in result
     assert result["model"] == "mock-vlm-v1"
-    assert result["confidence"] is None  # Confidence remains null for uncalibrated prototype
+    assert isinstance(result["confidence"], float)
+    assert 0.0 <= result["confidence"] <= 1.0
     assert "metadata" in result
     assert result["metadata"]["filename"] == "sample.png"
 
